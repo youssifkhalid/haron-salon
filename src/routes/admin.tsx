@@ -514,7 +514,8 @@ function GalleryPanel() {
     qc.invalidateQueries({ queryKey: ["gallery"] });
   }
   async function toggle(g: any, key: "is_visible" | "is_featured") {
-    await supabase.from("gallery_images").update({ [key]: !g[key] }).eq("id", g.id);
+    const patch: any = { [key]: !g[key] };
+    await supabase.from("gallery_images").update(patch).eq("id", g.id);
     qc.invalidateQueries({ queryKey: ["gallery"] });
   }
 
