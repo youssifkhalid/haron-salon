@@ -528,7 +528,7 @@ function GalleryPanel() {
         </div>
         <AddButton onClick={() => setDialog({ open: true })} label="إضافة صورة" />
       </div>
-      <p className="text-xs text-muted-foreground">💡 أضف الصور برابط مباشر (يمكن استخدام Cloudinary أو Imgur أو أي مضيف). أخفِ الصورة بدل حذفها للحفاظ على الروابط.</p>
+      <p className="text-xs text-muted-foreground">💡 ارفع الصور مباشرة من جهازك — تحفظ آمنة في الاستضافة. أخفِ الصورة بدل حذفها للحفاظ عليها.</p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {images.map((g: any) => (
           <div key={g.id} className={`group overflow-hidden rounded-2xl border transition ${g.is_visible ? "border-gold/10 bg-card" : "border-border bg-muted/20 opacity-60"}`}>
