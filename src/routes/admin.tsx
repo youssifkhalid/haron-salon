@@ -31,6 +31,8 @@ function AdminPage() {
 
   const { data: bookings = [] } = useQuery({ ...allBookingsQuery(), enabled: !!user && isAdmin });
   const { data: services = [] } = useQuery({ ...servicesQuery(), enabled: !!user && isAdmin });
+  const { data: barbers = [] } = useQuery({ ...barbersQuery(), enabled: !!user && isAdmin });
+  const { data: reviews = [] } = useQuery({ ...allReviewsQuery(), enabled: !!user && isAdmin });
 
   if (loading || rolesLoading) return <SiteLayout><div className="p-10 text-center">جارٍ التحميل...</div></SiteLayout>;
 
