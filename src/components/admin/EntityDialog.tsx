@@ -1,13 +1,16 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Trash2, Pencil, Plus } from "lucide-react";
+import { Trash2, Pencil, Plus, Upload, X, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-type FieldType = "text" | "number" | "textarea" | "url" | "boolean" | "email" | "tel";
+type FieldType = "text" | "number" | "textarea" | "url" | "boolean" | "email" | "tel" | "image";
+
 export type Field = {
   name: string;
   label: string;
