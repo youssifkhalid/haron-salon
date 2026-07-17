@@ -66,7 +66,6 @@ export const allBookingsQuery = () => ({
 export type Review = {
   id: string; user_id: string; rating: number; comment: string;
   is_approved: boolean; created_at: string;
-  profiles?: { full_name: string | null } | null;
 };
 
 export const approvedReviewsQuery = () => ({
@@ -74,7 +73,7 @@ export const approvedReviewsQuery = () => ({
   queryFn: async () => {
     const { data, error } = await supabase
       .from("reviews")
-      .select("*, profiles(full_name)")
+      .select("*")
       .eq("is_approved", true)
       .order("created_at", { ascending: false })
       .limit(50);
@@ -88,7 +87,7 @@ export const allReviewsQuery = () => ({
   queryFn: async () => {
     const { data, error } = await supabase
       .from("reviews")
-      .select("*, profiles(full_name)")
+      .select("*")
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw error;
