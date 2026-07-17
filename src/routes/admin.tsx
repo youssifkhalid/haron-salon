@@ -23,7 +23,7 @@ function AdminPage() {
   const { isAdmin, loading: rolesLoading } = useRoles(user?.id);
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<"bookings" | "services">("bookings");
+  const [tab, setTab] = useState<"bookings" | "services" | "barbers" | "reviews">("bookings");
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/admin" } });
