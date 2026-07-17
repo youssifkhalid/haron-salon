@@ -405,7 +405,7 @@ const barberFields: Field[] = [
   { name: "name", label: "الاسم", required: true },
   { name: "title", label: "المسمى الوظيفي", placeholder: "حلاق أول" },
   { name: "bio", label: "نبذة", type: "textarea" },
-  { name: "photo_url", label: "رابط الصورة", type: "url", placeholder: "https://..." },
+  { name: "photo_url", label: "صورة الحلاق", type: "image" },
   { name: "rating", label: "التقييم (1-5)", type: "number" },
   { name: "sort_order", label: "الترتيب", type: "number" },
   { name: "is_active", label: "مفعّل", type: "boolean" },
