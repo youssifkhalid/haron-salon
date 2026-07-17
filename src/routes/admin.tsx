@@ -52,7 +52,7 @@ function AdminPage() {
   }
 
   async function updateStatus(id: string, status: string) {
-    const { error } = await supabase.from("bookings").update({ status }).eq("id", id);
+    const { error } = await supabase.from("bookings").update({ status: status as any }).eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("تم تحديث الحالة");
     qc.invalidateQueries({ queryKey: ["bookings"] });
