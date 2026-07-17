@@ -60,6 +60,12 @@ export function EntityDialog<T extends Record<string, any>>({
                   <Switch checked={!!values[f.name]} onCheckedChange={(v) => setValues({ ...values, [f.name]: v })} />
                   <span className="text-xs text-muted-foreground">{values[f.name] ? "مفعّل" : "معطّل"}</span>
                 </div>
+              ) : f.type === "image" ? (
+                <ImageUploadField
+                  value={values[f.name] ?? ""}
+                  onChange={(url) => setValues({ ...values, [f.name]: url })}
+                  required={f.required}
+                />
               ) : (
                 <Input
                   type={f.type === "number" ? "number" : f.type === "url" ? "url" : f.type === "email" ? "email" : f.type === "tel" ? "tel" : "text"}
@@ -70,6 +76,7 @@ export function EntityDialog<T extends Record<string, any>>({
                   step={f.type === "number" ? "any" : undefined}
                 />
               )}
+
             </div>
           ))}
           <DialogFooter className="gap-2">
