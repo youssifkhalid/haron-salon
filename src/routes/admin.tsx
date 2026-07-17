@@ -484,7 +484,7 @@ function BarbersPanel() {
 /* =============================== GALLERY =============================== */
 const galleryFields: Field[] = [
   { name: "title", label: "العنوان", placeholder: "الصالون الداخلي" },
-  { name: "image_url", label: "رابط الصورة", type: "url", required: true, placeholder: "https://..." },
+  { name: "image_url", label: "الصورة", type: "image", required: true },
   { name: "alt_text", label: "الوصف (لذوي الاحتياجات وSEO)" },
   { name: "category", label: "التصنيف", placeholder: "الديكور / الحلاقة / الأدوات" },
   { name: "sort_order", label: "الترتيب", type: "number" },
