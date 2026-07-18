@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   CalendarCheck, Clock, Users, DollarSign, LayoutDashboard, Scissors, UserCog, Image as ImageIcon,
   Star, Settings, Shield, LogOut, Menu, X as XIcon, Check, Search, TrendingUp, Eye, EyeOff,
+  Tag, Wallet, CreditCard, MessageSquare, FileText, Megaphone, Bell, ClipboardList, BarChart3, ShieldCheck, Database,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth, useRoles } from "@/lib/auth";
@@ -17,23 +18,46 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EntityDialog, ConfirmButton, AddButton, IconEdit, IconDelete, type Field } from "@/components/admin/EntityDialog";
+import {
+  PromotionsPanel, ExpensesPanel, SubscriptionPlansPanel, ContentPagesPanel, BannersPanel,
+  PaymentMethodsPanel, BookingPoliciesPanel, NotificationTemplatesPanel, CRMPanel, InboxPanel,
+  AuditLogPanel, PermissionsPanel, ReportsPanel, POSPanel, BackupPanel,
+} from "@/components/admin/sections";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "لوحة الإدارة — صالون هارون" }, { name: "robots", content: "noindex" }] }),
   component: AdminPage,
 });
 
-type Section = "overview" | "bookings" | "services" | "barbers" | "gallery" | "reviews" | "users" | "settings";
+type Section =
+  | "overview" | "bookings" | "payments" | "policies" | "services" | "barbers" | "gallery" | "reviews"
+  | "users" | "crm" | "promotions" | "subscriptions" | "pos" | "expenses" | "reports"
+  | "inbox" | "notifications" | "banners" | "pages" | "permissions" | "audit" | "backup" | "settings";
 
-const nav: { key: Section; label: string; icon: any }[] = [
-  { key: "overview", label: "نظرة عامة", icon: LayoutDashboard },
-  { key: "bookings", label: "الحجوزات", icon: CalendarCheck },
-  { key: "services", label: "الخدمات", icon: Scissors },
-  { key: "barbers", label: "الحلاقين", icon: UserCog },
-  { key: "gallery", label: "المعرض", icon: ImageIcon },
-  { key: "reviews", label: "التقييمات", icon: Star },
-  { key: "users", label: "المستخدمون", icon: Users },
-  { key: "settings", label: "الإعدادات", icon: Settings },
+const nav: { key: Section; label: string; icon: any; group: string }[] = [
+  { key: "overview", label: "نظرة عامة", icon: LayoutDashboard, group: "الرئيسية" },
+  { key: "reports", label: "التقارير المالية", icon: BarChart3, group: "الرئيسية" },
+  { key: "bookings", label: "الحجوزات", icon: CalendarCheck, group: "العمليات" },
+  { key: "payments", label: "الدفع والإيصالات", icon: CreditCard, group: "العمليات" },
+  { key: "policies", label: "سياسة الحجز والعربون", icon: Wallet, group: "العمليات" },
+  { key: "pos", label: "نقاط البيع", icon: DollarSign, group: "العمليات" },
+  { key: "expenses", label: "المصروفات", icon: Wallet, group: "العمليات" },
+  { key: "services", label: "الخدمات", icon: Scissors, group: "الكتالوج" },
+  { key: "barbers", label: "الحلاقين", icon: UserCog, group: "الكتالوج" },
+  { key: "gallery", label: "المعرض", icon: ImageIcon, group: "الكتالوج" },
+  { key: "reviews", label: "التقييمات", icon: Star, group: "الكتالوج" },
+  { key: "users", label: "المستخدمون", icon: Users, group: "العملاء" },
+  { key: "crm", label: "CRM والولاء", icon: TrendingUp, group: "العملاء" },
+  { key: "promotions", label: "العروض والكوبونات", icon: Tag, group: "العملاء" },
+  { key: "subscriptions", label: "باقات الاشتراك", icon: ClipboardList, group: "العملاء" },
+  { key: "inbox", label: "الرسائل الواردة", icon: MessageSquare, group: "العملاء" },
+  { key: "banners", label: "البانرات", icon: Megaphone, group: "المحتوى" },
+  { key: "pages", label: "صفحات المحتوى", icon: FileText, group: "المحتوى" },
+  { key: "notifications", label: "قوالب الإشعارات", icon: Bell, group: "المحتوى" },
+  { key: "permissions", label: "الصلاحيات", icon: ShieldCheck, group: "النظام" },
+  { key: "audit", label: "سجل التدقيق", icon: ShieldCheck, group: "النظام" },
+  { key: "backup", label: "النسخ الاحتياطي", icon: Database, group: "النظام" },
+  { key: "settings", label: "الإعدادات", icon: Settings, group: "النظام" },
 ];
 
 function AdminPage() {
@@ -77,13 +101,20 @@ function AdminPage() {
             <Logo size={44} />
             <div className="mt-3 text-[10px] font-black tracking-[0.3em] text-gold/70">ADMIN PANEL</div>
           </div>
-          <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-            {nav.map((n) => (
-              <button key={n.key} onClick={() => { setSection(n.key); setSidebarOpen(false); }}
-                className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition ${section === n.key ? "bg-gold-gradient text-gold-foreground shadow-gold" : "text-foreground/70 hover:bg-accent/40 hover:text-gold"}`}>
-                <n.icon className="h-4 w-4" />
-                <span>{n.label}</span>
-              </button>
+          <nav className="flex-1 space-y-3 overflow-y-auto p-3">
+            {Array.from(new Set(nav.map((n) => n.group))).map((group) => (
+              <div key={group}>
+                <div className="px-3 pb-1 pt-2 text-[10px] font-black tracking-[0.2em] text-muted-foreground/70">{group}</div>
+                <div className="space-y-1">
+                  {nav.filter((n) => n.group === group).map((n) => (
+                    <button key={n.key} onClick={() => { setSection(n.key); setSidebarOpen(false); }}
+                      className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-bold transition ${section === n.key ? "bg-gold-gradient text-gold-foreground shadow-gold" : "text-foreground/70 hover:bg-accent/40 hover:text-gold"}`}>
+                      <n.icon className="h-4 w-4" />
+                      <span>{n.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </nav>
           <div className="space-y-1 border-t border-gold/10 p-3">
@@ -116,12 +147,27 @@ function AdminPage() {
 
         <main className="p-4 sm:p-6">
           {section === "overview" && <OverviewPanel />}
+          {section === "reports" && <ReportsPanel />}
           {section === "bookings" && <BookingsPanel />}
+          {section === "payments" && <PaymentMethodsPanel />}
+          {section === "policies" && <BookingPoliciesPanel />}
+          {section === "pos" && <POSPanel />}
+          {section === "expenses" && <ExpensesPanel />}
           {section === "services" && <ServicesPanel />}
           {section === "barbers" && <BarbersPanel />}
           {section === "gallery" && <GalleryPanel />}
           {section === "reviews" && <ReviewsPanel />}
           {section === "users" && <UsersPanel />}
+          {section === "crm" && <CRMPanel />}
+          {section === "promotions" && <PromotionsPanel />}
+          {section === "subscriptions" && <SubscriptionPlansPanel />}
+          {section === "inbox" && <InboxPanel />}
+          {section === "banners" && <BannersPanel />}
+          {section === "pages" && <ContentPagesPanel />}
+          {section === "notifications" && <NotificationTemplatesPanel />}
+          {section === "permissions" && <PermissionsPanel />}
+          {section === "audit" && <AuditLogPanel />}
+          {section === "backup" && <BackupPanel />}
           {section === "settings" && <SettingsPanel />}
         </main>
       </div>
