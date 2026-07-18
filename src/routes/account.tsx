@@ -157,7 +157,7 @@ function OverviewTab({ userId }: { userId: string }) {
 
         <div className="rounded-2xl border border-gold/15 bg-gold/5 p-5">
           <div className="text-xs text-muted-foreground">نقاط الولاء</div>
-          <div className="mt-2 font-display text-4xl font-black text-gold">{points?.points_balance ?? 0}</div>
+          <div className="mt-2 font-display text-4xl font-black text-gold">{points?.balance ?? 0}</div>
           <div className="mt-1 text-xs text-muted-foreground">اكسب نقاط مع كل حجز مكتمل</div>
           {stats.fav !== "—" && (
             <div className="mt-4 pt-4 border-t border-gold/20 text-xs">
