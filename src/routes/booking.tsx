@@ -530,13 +530,22 @@ function BookingPage() {
                         onClick={() => setMethodId(m.id)}
                         className={`cursor-pointer rounded-2xl border p-4 transition ${active ? "border-gold bg-gold/10 shadow-gold" : "border-border hover:border-gold/40"}`}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="font-bold">{m.name}</div>
-                          <div className={`grid h-5 w-5 place-items-center rounded-full border-2 ${active ? "border-gold bg-gold-gradient" : "border-border"}`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-3 min-w-0">
+                            {m.logo_url ? (
+                              <img src={m.logo_url} alt={m.name} className="h-10 w-10 rounded-lg object-cover border border-border shrink-0" />
+                            ) : (
+                              <div className="grid h-10 w-10 place-items-center rounded-lg bg-gold/10 text-gold text-[10px] font-black shrink-0">{m.name.slice(0,2)}</div>
+                            )}
+                            <div className="min-w-0">
+                              <div className="font-bold truncate">{m.name}</div>
+                              {m.provider && <div className="text-xs text-muted-foreground truncate">{m.provider}</div>}
+                            </div>
+                          </div>
+                          <div className={`grid h-5 w-5 place-items-center rounded-full border-2 shrink-0 ${active ? "border-gold bg-gold-gradient" : "border-border"}`}>
                             {active && <Check className="h-3 w-3 text-gold-foreground" />}
                           </div>
                         </div>
-                        {m.provider && <div className="text-xs text-muted-foreground">{m.provider}</div>}
                         {m.account_info && (
                           <div className="mt-2 flex items-center gap-2 rounded-lg bg-surface-elevated px-3 py-2">
                             <code className="flex-1 font-mono text-xs break-all">{m.account_info}</code>
