@@ -577,12 +577,21 @@ function BookingsTab({ barber }: { barber: BarberFull }) {
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-muted-foreground">لا توجد حجوزات في هذا النطاق.</div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((b: any) => (
+          {filtered.map((b: any) => {
+            const refItem = b.reference;
+            const refCover = refItem?.media?.[0] ?? (refItem ? { media_url: refItem.media_url, thumbnail_url: refItem.thumbnail_url, media_type: refItem.media_type } : null);
+            return (
             <div key={b.id} className="rounded-2xl border border-gold/10 bg-card p-4 flex flex-wrap items-center gap-4">
               <div className="text-center min-w-[70px] rounded-xl bg-gold/10 py-2 px-3">
                 <div className="text-xs text-muted-foreground">{b.booking_date}</div>
                 <div className="font-black text-gold" dir="ltr">{b.booking_time?.slice(0, 5)}</div>
               </div>
+              {refCover && (
+                <a href={`/barbers/${barber.id}`} target="_blank" rel="noreferrer" title="الشكل المرجعي" className="relative shrink-0 h-14 w-14 rounded-xl overflow-hidden border border-gold/40">
+                  <img src={refCover.thumbnail_url ?? refCover.media_url} className="h-full w-full object-cover" alt="مرجع" />
+                  <div className="absolute inset-x-0 bottom-0 bg-gold text-gold-foreground text-[9px] font-black text-center py-0.5">مرجع</div>
+                </a>
+              )}
               <div className="flex-1 min-w-[200px]">
                 <div className="font-bold">{b.customer_name}</div>
                 <div className="text-xs text-muted-foreground">{b.services?.name ?? "—"} • {b.customer_phone}</div>
@@ -590,7 +599,7 @@ function BookingsTab({ barber }: { barber: BarberFull }) {
               </div>
               <Badge className={`border ${statusColors[b.status] ?? ""}`} variant="outline">{statusAr[b.status] ?? b.status}</Badge>
             </div>
-          ))}
+          );})}
         </div>
       )}
     </div>
