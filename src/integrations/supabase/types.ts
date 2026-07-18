@@ -779,7 +779,7 @@ export type Database = {
           sender_phone: string | null
           status: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           admin_notes?: string | null
@@ -793,7 +793,7 @@ export type Database = {
           sender_phone?: string | null
           status?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           admin_notes?: string | null
@@ -807,7 +807,7 @@ export type Database = {
           sender_phone?: string | null
           status?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
