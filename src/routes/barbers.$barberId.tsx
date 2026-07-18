@@ -86,78 +86,81 @@ function BarberProfile() {
         </div>
 
         <div className="-mt-16 px-2 sm:px-6 animate-fade-in">
-          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5">
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-end gap-4 sm:flex sm:items-end sm:gap-5">
             <div className="relative shrink-0">
               <div className="absolute -inset-1 rounded-full bg-gold-gradient opacity-70 blur-md animate-pulse" />
-              <div className="relative h-28 w-28 sm:h-36 sm:w-36 rounded-full overflow-hidden border-4 border-background bg-gold-gradient grid place-items-center text-5xl font-black text-gold-foreground shadow-gold ring-2 ring-gold/40 transition hover:scale-[1.02]">
+              <div className="relative h-24 w-24 sm:h-36 sm:w-36 rounded-full overflow-hidden border-4 border-background bg-gold-gradient grid place-items-center text-5xl font-black text-gold-foreground shadow-gold ring-2 ring-gold/40">
                 {barber.photo_url
                   ? <img src={barber.photo_url} alt={barber.name} className="h-full w-full object-cover" />
                   : barber.name.charAt(0)}
               </div>
             </div>
-            <div className="flex-1 pt-3">
+            <div className="min-w-0 flex-1 pt-2 sm:pt-3">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="font-display text-3xl sm:text-4xl font-black">{barber.name}</h1>
+                <h1 className="truncate font-display text-2xl sm:text-4xl font-black">{barber.name}</h1>
                 {barber.is_present_now && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 px-2.5 py-1 text-[11px] font-bold text-emerald-400">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
                     <span className="relative flex h-1.5 w-1.5">
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                       <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
                     </span>
-                    متواجد الآن
+                    متواجد
                   </span>
                 )}
               </div>
-              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                {barber.title && <span className="text-gold font-bold">{barber.title}</span>}
-                <span className="inline-flex items-center gap-1 text-gold">
-                  <Star className="h-3.5 w-3.5 fill-current" /> {Number(barber.rating ?? 5).toFixed(1)}
-                </span>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-muted-foreground">
+                {barber.title && <span className="text-gold font-bold truncate">{barber.title}</span>}
                 {barber.chair_number != null && (
                   <span className="inline-flex items-center gap-1">
-                    <Armchair className="h-4 w-4 text-gold" /> كرسي {barber.chair_number}
+                    <Armchair className="h-3.5 w-3.5 text-gold" /> كرسي {barber.chair_number}
                   </span>
                 )}
               </div>
-
-              <div className="mt-4 flex gap-6 text-sm">
-                <div><b className="text-base font-black">{posts}</b> <span className="text-muted-foreground">منشور</span></div>
-                <div><b className="text-base font-black">{reels}</b> <span className="text-muted-foreground">ريلز</span></div>
-                <div className="inline-flex items-center gap-1"><b className="text-base font-black">{Number(barber.rating ?? 5).toFixed(1)}</b> <Star className="h-3.5 w-3.5 fill-gold text-gold" /></div>
-              </div>
-            </div>
-
-            <div className="flex gap-2 pt-3 w-full sm:w-auto">
-              <Link
-                to="/booking"
-                search={{ barber: barber.id } as any}
-                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-xl bg-gold-gradient px-5 py-2.5 text-sm font-black text-gold-foreground shadow-gold hover:brightness-110"
-              >
-                <Calendar className="h-4 w-4" /> احجز موعد
-              </Link>
-              <ShareButton name={barber.name} />
             </div>
           </div>
 
+          {/* Stats row (Instagram-like) */}
+          <div className="mt-4 flex items-center justify-around rounded-2xl border border-gold/10 bg-card/40 px-3 py-2.5 text-center text-sm">
+            <div><b className="block text-base font-black">{posts}</b> <span className="text-[11px] text-muted-foreground">منشور</span></div>
+            <div className="h-8 w-px bg-border" />
+            <div><b className="block text-base font-black">{reels}</b> <span className="text-[11px] text-muted-foreground">ريلز</span></div>
+            <div className="h-8 w-px bg-border" />
+            <div className="inline-flex flex-col items-center"><b className="inline-flex items-center gap-1 text-base font-black"><Star className="h-3.5 w-3.5 fill-gold text-gold" />{Number(barber.rating ?? 5).toFixed(1)}</b> <span className="text-[11px] text-muted-foreground">التقييم</span></div>
+          </div>
+
+          {/* CTA + Share */}
+          <div className="mt-3 flex gap-2">
+            <Link
+              to="/booking"
+              search={{ barber: barber.id } as any}
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gold-gradient px-4 py-2.5 text-sm font-black text-gold-foreground shadow-gold hover:brightness-110"
+            >
+              <Calendar className="h-4 w-4" /> احجز موعد
+            </Link>
+            <ShareButton name={barber.name} />
+          </div>
+
           {barber.bio && (
-            <p className="mt-5 text-sm leading-7 text-foreground/90 whitespace-pre-line max-w-2xl">
+            <p className="mt-4 text-sm leading-7 text-foreground/90 whitespace-pre-line max-w-2xl">
               {barber.bio}
             </p>
           )}
 
-          <div className="mt-4">
+          <div className="mt-3">
             <SocialLinks whatsapp={barber.whatsapp} instagram={barber.instagram} tiktok={barber.tiktok} facebook={barber.facebook} size="md" />
           </div>
 
-          <div className="mt-6 rounded-2xl border border-gold/15 bg-card p-4">
-            <div className="flex items-center gap-2 mb-3 text-sm font-bold">
-              <Clock className="h-4 w-4 text-gold" /> مواعيد العمل
-            </div>
-            <div className="flex overflow-x-auto gap-2 pb-1 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <details className="mt-5 rounded-2xl border border-gold/15 bg-card/60 group">
+            <summary className="flex items-center justify-between cursor-pointer list-none p-3 text-sm font-bold">
+              <span className="inline-flex items-center gap-2"><Clock className="h-4 w-4 text-gold" /> مواعيد العمل</span>
+              <span className="text-xs text-muted-foreground group-open:hidden">عرض</span>
+              <span className="text-xs text-muted-foreground hidden group-open:inline">إخفاء</span>
+            </summary>
+            <div className="flex overflow-x-auto gap-2 px-3 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {hoursList.map((h) => (
                 <div
                   key={h.key}
-                  className={`shrink-0 min-w-[92px] rounded-xl border px-3 py-2 text-center transition ${
+                  className={`shrink-0 min-w-[88px] rounded-xl border px-3 py-2 text-center transition ${
                     h.isToday ? "border-gold bg-gold/10" : "border-border bg-surface-elevated"
                   }`}
                 >
@@ -170,8 +173,9 @@ function BarberProfile() {
                 </div>
               ))}
             </div>
-          </div>
+          </details>
         </div>
+
 
         {/* Tabs */}
         <div className="mt-8 border-t border-gold/15">
