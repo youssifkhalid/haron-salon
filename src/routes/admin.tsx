@@ -101,13 +101,20 @@ function AdminPage() {
             <Logo size={44} />
             <div className="mt-3 text-[10px] font-black tracking-[0.3em] text-gold/70">ADMIN PANEL</div>
           </div>
-          <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-            {nav.map((n) => (
-              <button key={n.key} onClick={() => { setSection(n.key); setSidebarOpen(false); }}
-                className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition ${section === n.key ? "bg-gold-gradient text-gold-foreground shadow-gold" : "text-foreground/70 hover:bg-accent/40 hover:text-gold"}`}>
-                <n.icon className="h-4 w-4" />
-                <span>{n.label}</span>
-              </button>
+          <nav className="flex-1 space-y-3 overflow-y-auto p-3">
+            {Array.from(new Set(nav.map((n) => n.group))).map((group) => (
+              <div key={group}>
+                <div className="px-3 pb-1 pt-2 text-[10px] font-black tracking-[0.2em] text-muted-foreground/70">{group}</div>
+                <div className="space-y-1">
+                  {nav.filter((n) => n.group === group).map((n) => (
+                    <button key={n.key} onClick={() => { setSection(n.key); setSidebarOpen(false); }}
+                      className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-bold transition ${section === n.key ? "bg-gold-gradient text-gold-foreground shadow-gold" : "text-foreground/70 hover:bg-accent/40 hover:text-gold"}`}>
+                      <n.icon className="h-4 w-4" />
+                      <span>{n.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </nav>
           <div className="space-y-1 border-t border-gold/10 p-3">
