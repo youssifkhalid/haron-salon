@@ -216,7 +216,8 @@ function BookingPage() {
   }
 
   async function submitWithDeposit() {
-    if (!user) { toast.error("سجّل دخولك أولاً"); return; }
+    const isGuest = !user && (!!search.guest);
+    if (!user && !isGuest) { toast.error("سجّل دخولك أولاً"); return; }
     if (!methodId) { toast.error("اختر وسيلة دفع"); return; }
     if (!senderPhone.trim()) { toast.error("أدخل رقم الهاتف الذي حوّلت منه"); return; }
     if (!proofUrl) { toast.error("ارفع صورة إثبات التحويل"); return; }
@@ -224,7 +225,7 @@ function BookingPage() {
     const bookingId = await createBooking("pending_payment");
     if (!bookingId) { setSubmitting(false); return; }
     const { error } = await supabase.from("payment_proofs").insert({
-      user_id: user.id,
+      user_id: user?.id ?? null,
       booking_id: bookingId,
       method_id: methodId,
       amount_egp: depositAmount,
@@ -236,8 +237,9 @@ function BookingPage() {
     if (error) { toast.error("تعذّر إرسال إثبات الدفع: " + error.message); return; }
     toast.success("تم إرسال طلبك! ستتم مراجعة الدفع وتأكيد حجزك قريبًا.");
     qc.invalidateQueries({ queryKey: ["bookings"] });
-    navigate({ to: "/account" });
+    navigate({ to: user ? "/account" : "/" });
   }
+
 
   const selectedBarber = barbers.find((b: Barber) => b.id === barberId);
 
