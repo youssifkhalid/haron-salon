@@ -531,6 +531,9 @@ function BookingsTab({ barber }: { barber: BarberFull }) {
   const qc = useQueryClient();
   const { data: bookings = [] } = useQuery(barberBookingsQuery(barber.id));
   const [filter, setFilter] = useState<"today" | "week" | "upcoming" | "all">("today");
+  const [status, setStatus] = useState<"all" | "pending" | "confirmed" | "completed" | "cancelled">("all");
+  const [q, setQ] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     const channel = supabase
@@ -546,11 +549,26 @@ function BookingsTab({ barber }: { barber: BarberFull }) {
   const weekEnd = new Date(now.getTime() + 7 * 86400_000).toISOString().slice(0, 10);
 
   const filtered = bookings.filter((b: any) => {
-    if (filter === "today") return b.booking_date === todayStr;
-    if (filter === "week") return b.booking_date >= todayStr && b.booking_date <= weekEnd;
-    if (filter === "upcoming") return b.booking_date >= todayStr;
+    if (filter === "today" && b.booking_date !== todayStr) return false;
+    if (filter === "week" && !(b.booking_date >= todayStr && b.booking_date <= weekEnd)) return false;
+    if (filter === "upcoming" && b.booking_date < todayStr) return false;
+    if (status !== "all" && b.status !== status) return false;
+    if (q.trim()) {
+      const t = q.trim().toLowerCase();
+      const hay = `${b.customer_name ?? ""} ${b.customer_phone ?? ""} ${b.services?.name ?? ""}`.toLowerCase();
+      if (!hay.includes(t)) return false;
+    }
     return true;
-  });
+  }).sort((a: any, b: any) => (a.booking_date + a.booking_time).localeCompare(b.booking_date + b.booking_time));
+
+  // KPIs — computed from all bookings (not filter-scoped) for stable dashboard feel.
+  const kpi = useMemo(() => ({
+    today: bookings.filter((b: any) => b.booking_date === todayStr).length,
+    pending: bookings.filter((b: any) => b.status === "pending").length,
+    week: bookings.filter((b: any) => b.booking_date >= todayStr && b.booking_date <= weekEnd).length,
+    next: bookings.find((b: any) => b.booking_date === todayStr && b.booking_time > now.toTimeString().slice(0, 5) && b.status !== "cancelled"),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [bookings]);
 
   const statusColors: Record<string, string> = {
     pending: "bg-amber-500/15 text-amber-500 border-amber-500/30",
@@ -563,41 +581,102 @@ function BookingsTab({ barber }: { barber: BarberFull }) {
     pending: "قيد المراجعة", confirmed: "مؤكد", completed: "مكتمل", cancelled: "ملغي", no_show: "لم يحضر",
   };
 
+  async function setBookingStatus(id: string, newStatus: "pending" | "confirmed" | "completed" | "cancelled" | "no_show") {
+    setBusyId(id);
+    const { error } = await supabase.from("bookings").update({ status: newStatus }).eq("id", id);
+    setBusyId(null);
+    if (error) { toast.error(error.message); return; }
+    toast.success("تم التحديث");
+    qc.invalidateQueries({ queryKey: ["barber-bookings", barber.id] });
+  }
+
   return (
-    <div className="space-y-4">
-      <Tabs value={filter} onValueChange={(v) => setFilter(v as any)}>
-        <TabsList>
-          <TabsTrigger value="today">اليوم</TabsTrigger>
-          <TabsTrigger value="week">هذا الأسبوع</TabsTrigger>
-          <TabsTrigger value="upcoming">القادم</TabsTrigger>
-          <TabsTrigger value="all">الكل</TabsTrigger>
-        </TabsList>
-      </Tabs>
+    <div className="space-y-4 animate-fade-in">
+      {/* KPI row */}
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <Kpi label="حجوزات اليوم" value={kpi.today} />
+        <Kpi label="قيد المراجعة" value={kpi.pending} />
+        <Kpi label="هذا الأسبوع" value={kpi.week} />
+        <div className="rounded-2xl border border-gold/20 bg-gold/5 p-4">
+          <div className="text-xs text-muted-foreground">القادم اليوم</div>
+          {kpi.next ? (
+            <div className="mt-1">
+              <div className="font-black text-gold text-lg" dir="ltr">{kpi.next.booking_time?.slice(0, 5)}</div>
+              <div className="text-xs truncate">{kpi.next.customer_name}</div>
+            </div>
+          ) : <div className="mt-1 text-sm text-muted-foreground">لا يوجد</div>}
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Tabs value={filter} onValueChange={(v) => setFilter(v as any)}>
+          <TabsList>
+            <TabsTrigger value="today">اليوم</TabsTrigger>
+            <TabsTrigger value="week">الأسبوع</TabsTrigger>
+            <TabsTrigger value="upcoming">القادم</TabsTrigger>
+            <TabsTrigger value="all">الكل</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <select value={status} onChange={(e) => setStatus(e.target.value as any)}
+          className="h-9 rounded-md border border-border bg-background px-3 text-sm">
+          <option value="all">كل الحالات</option>
+          <option value="pending">قيد المراجعة</option>
+          <option value="confirmed">مؤكد</option>
+          <option value="completed">مكتمل</option>
+          <option value="cancelled">ملغي</option>
+        </select>
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث بالاسم/الهاتف/الخدمة..." className="max-w-xs" />
+        <div className="ms-auto text-xs text-muted-foreground">{filtered.length} حجز</div>
+      </div>
+
       {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-10 text-center text-muted-foreground">لا توجد حجوزات في هذا النطاق.</div>
+        <div className="rounded-2xl border border-dashed border-border p-10 text-center text-muted-foreground">لا توجد حجوزات مطابقة.</div>
       ) : (
         <div className="space-y-2">
           {filtered.map((b: any) => {
             const refItem = b.reference;
             const refCover = refItem?.media?.[0] ?? (refItem ? { media_url: refItem.media_url, thumbnail_url: refItem.thumbnail_url, media_type: refItem.media_type } : null);
+            const busy = busyId === b.id;
             return (
-            <div key={b.id} className="rounded-2xl border border-gold/10 bg-card p-4 flex flex-wrap items-center gap-4">
+            <div key={b.id} className="rounded-2xl border border-gold/10 bg-card p-4 flex flex-wrap items-center gap-4 animate-fade-in transition hover:border-gold/40">
               <div className="text-center min-w-[70px] rounded-xl bg-gold/10 py-2 px-3">
                 <div className="text-xs text-muted-foreground">{b.booking_date}</div>
                 <div className="font-black text-gold" dir="ltr">{b.booking_time?.slice(0, 5)}</div>
               </div>
               {refCover && (
-                <a href={`/barbers/${barber.id}?post=${refItem.id}`} target="_blank" rel="noreferrer" title="افتح البوست المرجعي" className="relative shrink-0 h-14 w-14 rounded-xl overflow-hidden border border-gold/40 hover:ring-2 hover:ring-gold">
+                <a href={`/barbers/${barber.id}?post=${refItem.id}`} target="_blank" rel="noreferrer" title="افتح البوست المرجعي" className="relative shrink-0 h-14 w-14 rounded-xl overflow-hidden border border-gold/40 hover:ring-2 hover:ring-gold transition">
                   <img src={refCover.thumbnail_url ?? refCover.media_url} className="h-full w-full object-cover" alt="مرجع" />
                   <div className="absolute inset-x-0 bottom-0 bg-gold text-gold-foreground text-[9px] font-black text-center py-0.5">مرجع</div>
                 </a>
               )}
               <div className="flex-1 min-w-[200px]">
-                <div className="font-bold">{b.customer_name}</div>
-                <div className="text-xs text-muted-foreground">{b.services?.name ?? "—"} • {b.customer_phone}</div>
+                <div className="font-bold flex items-center gap-2">
+                  {b.customer_name}
+                  {b.customer_phone && (
+                    <a href={`tel:${b.customer_phone}`} className="text-xs text-gold hover:underline" dir="ltr">{b.customer_phone}</a>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground">{b.services?.name ?? "—"}</div>
                 {b.notes && <div className="mt-1 text-xs text-muted-foreground italic">"{b.notes}"</div>}
               </div>
-              <Badge className={`border ${statusColors[b.status] ?? ""}`} variant="outline">{statusAr[b.status] ?? b.status}</Badge>
+              <div className="flex flex-col items-end gap-2">
+                <Badge className={`border ${statusColors[b.status] ?? ""}`} variant="outline">{statusAr[b.status] ?? b.status}</Badge>
+                <div className="flex gap-1">
+                  {b.status === "pending" && (
+                    <Button size="sm" variant="outline" disabled={busy} onClick={() => setBookingStatus(b.id, "confirmed")} className="h-7 text-xs">تأكيد</Button>
+                  )}
+                  {b.status === "confirmed" && (
+                    <>
+                      <Button size="sm" variant="outline" disabled={busy} onClick={() => setBookingStatus(b.id, "completed")} className="h-7 text-xs">إكمال</Button>
+                      <Button size="sm" variant="outline" disabled={busy} onClick={() => setBookingStatus(b.id, "no_show")} className="h-7 text-xs text-muted-foreground">لم يحضر</Button>
+                    </>
+                  )}
+                  {(b.status === "pending" || b.status === "confirmed") && (
+                    <Button size="sm" variant="outline" disabled={busy} onClick={() => setBookingStatus(b.id, "cancelled")} className="h-7 text-xs text-destructive">إلغاء</Button>
+                  )}
+                </div>
+              </div>
             </div>
           );})}
         </div>

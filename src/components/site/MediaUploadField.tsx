@@ -8,15 +8,17 @@ const TEN_YEARS = 60 * 60 * 24 * 365 * 10;
 const MAX_IMAGE_MB = 100;
 const MAX_VIDEO_MB = 500;
 
-// Aggressive but fast client-side compression to accelerate uploads.
+// Ultra-fast client-side compression — tuned for near-instant portfolio uploads.
 async function fastCompress(file: File): Promise<File> {
   if (!file.type.startsWith("image/") || file.type === "image/gif") return file;
+  // Skip tiny images entirely.
+  if (file.size < 350 * 1024) return file;
   try {
     const out = await imageCompression(file, {
-      maxSizeMB: 1.2,
-      maxWidthOrHeight: 2000,
+      maxSizeMB: 0.6,
+      maxWidthOrHeight: 1600,
       useWebWorker: true,
-      initialQuality: 0.8,
+      initialQuality: 0.72,
       fileType: file.type === "image/png" ? "image/png" : "image/jpeg",
     });
     return out.size < file.size ? (out as File) : file;
@@ -42,7 +44,7 @@ async function uploadOne(file: File): Promise<UploadedMedia> {
   return { url: data.signedUrl, type: isVideo ? "video" : "image" };
 }
 
-/** Uploads an image OR short video to the media bucket and returns a signed URL. Supports batch. */
+/** Uploads image(s) OR a short video and returns signed URLs. Supports batch + optimistic previews. */
 export function MediaUploadField({
   onUploaded,
   accept = "image/*,video/*",
@@ -69,7 +71,10 @@ export function MediaUploadField({
     setUploading(true);
     setProgress({ done: 0, total: files.length });
     let success = 0, fail = 0;
-    const chunk = 4; // parallel uploads for speed
+    // Fully-parallel uploads — Supabase storage handles concurrency well; the browser
+    // and server are the bottleneck, not us. For very large batches (>12) chunk to avoid
+    // opening too many sockets simultaneously.
+    const chunk = files.length > 12 ? 8 : files.length;
     for (let i = 0; i < files.length; i += chunk) {
       const slice = files.slice(i, i + chunk);
       const results = await Promise.allSettled(slice.map(uploadOne));
