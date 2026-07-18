@@ -85,12 +85,15 @@ function BarberProfile() {
           <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/40 to-transparent" />
         </div>
 
-        <div className="-mt-16 px-2 sm:px-6">
+        <div className="-mt-16 px-2 sm:px-6 animate-fade-in">
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5">
-            <div className="h-28 w-28 sm:h-36 sm:w-36 rounded-full overflow-hidden border-4 border-background bg-gold-gradient grid place-items-center text-5xl font-black text-gold-foreground shadow-gold shrink-0">
-              {barber.photo_url
-                ? <img src={barber.photo_url} alt={barber.name} className="h-full w-full object-cover" />
-                : barber.name.charAt(0)}
+            <div className="relative shrink-0">
+              <div className="absolute -inset-1 rounded-full bg-gold-gradient opacity-70 blur-md animate-pulse" />
+              <div className="relative h-28 w-28 sm:h-36 sm:w-36 rounded-full overflow-hidden border-4 border-background bg-gold-gradient grid place-items-center text-5xl font-black text-gold-foreground shadow-gold ring-2 ring-gold/40 transition hover:scale-[1.02]">
+                {barber.photo_url
+                  ? <img src={barber.photo_url} alt={barber.name} className="h-full w-full object-cover" />
+                  : barber.name.charAt(0)}
+              </div>
             </div>
             <div className="flex-1 pt-3">
               <div className="flex flex-wrap items-center gap-2">
@@ -185,27 +188,28 @@ function BarberProfile() {
           </div>
         ) : (
           <div className="mt-4 grid grid-cols-3 gap-1 sm:gap-2">
-            {filtered.map((it) => {
+            {filtered.map((it, gi) => {
               const cover = it.media[0] ?? { media_type: it.media_type, media_url: it.media_url, thumbnail_url: it.thumbnail_url };
               const count = it.media.length || 1;
               return (
                 <button
                   key={it.id}
                   onClick={() => setLightbox(it)}
-                  className="group relative aspect-square overflow-hidden bg-black focus:outline-none focus:ring-2 focus:ring-gold/60"
+                  style={{ animationDelay: `${Math.min(gi, 20) * 30}ms` }}
+                  className="group relative aspect-square overflow-hidden rounded-md sm:rounded-lg bg-black focus:outline-none focus:ring-2 focus:ring-gold/60 animate-fade-in opacity-0 [animation-fill-mode:forwards] hover:z-10"
                   aria-label={it.caption ?? "عرض"}
                 >
                   {cover.media_type === "video" ? (
                     <>
                       {cover.thumbnail_url
-                        ? <img src={cover.thumbnail_url} alt="" className="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
+                        ? <img src={cover.thumbnail_url} alt="" className="h-full w-full object-cover transition duration-500 ease-out group-hover:scale-110" loading="lazy" />
                         : <video src={cover.media_url} className="h-full w-full object-cover" muted playsInline preload="metadata" />}
                       <div className="absolute top-1.5 left-1.5 rounded-full bg-black/60 p-1 text-white pointer-events-none">
                         <Play className="h-3 w-3 fill-white" />
                       </div>
                     </>
                   ) : (
-                    <img src={cover.media_url} alt={it.caption ?? ""} className="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
+                    <img src={cover.media_url} alt={it.caption ?? ""} className="h-full w-full object-cover transition duration-500 ease-out group-hover:scale-110" loading="lazy" />
                   )}
                   {count > 1 && (
                     <div className="absolute top-1.5 right-1.5 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] font-black text-white pointer-events-none">
@@ -312,7 +316,7 @@ function Lightbox({
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/95 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
       <button className="absolute top-4 right-4 rounded-full bg-white/10 hover:bg-white/20 p-2 text-white z-10" aria-label="إغلاق"><X className="h-6 w-6" /></button>
-      <div className="max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-surface" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-surface shadow-2xl animate-scale-in" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 border-b border-border p-3">
           <div className="h-9 w-9 rounded-full overflow-hidden bg-gold-gradient grid place-items-center text-sm font-black text-gold-foreground">
             {barber.photo_url ? <img src={barber.photo_url} className="h-full w-full object-cover" alt="" /> : barber.name.charAt(0)}
@@ -329,8 +333,11 @@ function Lightbox({
           onTouchEnd={onTouchEnd}
         >
           {cur.media_type === "video"
-            ? <video key={cur.media_url} src={cur.media_url} controls autoPlay loop playsInline className="max-h-[70vh] w-auto" />
-            : <img src={cur.media_url} alt={item.caption ?? ""} className="max-h-[70vh] w-auto object-contain" draggable={false} />}
+            ? <video key={cur.media_url} src={cur.media_url} controls autoPlay loop playsInline className="max-h-[70vh] w-auto animate-fade-in" />
+            : <img key={cur.media_url} src={cur.media_url} alt={item.caption ?? ""} className="max-h-[70vh] w-auto object-contain animate-fade-in" draggable={false} />}
+          {/* Preload neighbor images for instant swipe */}
+          {media[i + 1]?.media_type === "image" && <img src={media[i + 1].media_url} alt="" className="hidden" aria-hidden />}
+          {media[i - 1]?.media_type === "image" && <img src={media[i - 1].media_url} alt="" className="hidden" aria-hidden />}
           {many && i > 0 && (
             <button onClick={prevImg} className="hidden sm:block absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 hover:bg-black/80 p-2 text-white" aria-label="السابق">
               <ChevronRight className="h-5 w-5" />
