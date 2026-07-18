@@ -32,7 +32,7 @@ export const Route = createFileRoute("/admin")({
 type Section =
   | "overview" | "bookings" | "payments" | "policies" | "services" | "barbers" | "gallery" | "reviews"
   | "users" | "crm" | "promotions" | "subscriptions" | "pos" | "expenses" | "reports"
-  | "inbox" | "notifications" | "banners" | "pages" | "permissions" | "audit" | "backup" | "settings";
+  | "inbox" | "notifications" | "banners" | "pages" | "qrcodes" | "permissions" | "audit" | "backup" | "settings";
 
 const nav: { key: Section; label: string; icon: any; group: string }[] = [
   { key: "overview", label: "نظرة عامة", icon: LayoutDashboard, group: "الرئيسية" },
