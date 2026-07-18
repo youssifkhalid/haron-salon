@@ -28,20 +28,30 @@ function ServicesPage() {
           <p className="mt-4 text-muted-foreground">أسعار شفافة، جودة استثنائية، وخبرة تلمسها من أول زيارة.</p>
         </header>
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {services.map((s: Service, i) => {
+          {services.map((s: any, i) => {
             const Icon = iconMap[s.icon ?? ""] ?? Scissors;
             return (
-              <div key={s.id} className="animate-fade-up group rounded-2xl border border-gold/10 bg-card p-6 transition hover:border-gold/40 hover:shadow-gold" style={{ animationDelay: `${i*50}ms` }}>
-                <div className="mb-4 grid h-12 w-12 place-items-center rounded-xl bg-gold-gradient text-gold-foreground shadow-gold">
-                  <Icon className="h-6 w-6" />
+              <div key={s.id} className="animate-fade-up group overflow-hidden rounded-2xl border border-gold/10 bg-card transition hover:border-gold/40 hover:shadow-gold" style={{ animationDelay: `${i*50}ms` }}>
+                {s.image_url ? (
+                  <div className="aspect-[16/10] overflow-hidden bg-muted">
+                    <img src={s.image_url} alt={s.name} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                  </div>
+                ) : (
+                  <div className="aspect-[16/10] bg-gradient-to-br from-gold/10 to-transparent grid place-items-center">
+                    <div className="grid h-16 w-16 place-items-center rounded-2xl bg-gold-gradient text-gold-foreground shadow-gold">
+                      <Icon className="h-8 w-8" />
+                    </div>
+                  </div>
+                )}
+                <div className="p-6">
+                  <h3 className="text-lg font-bold">{s.name}</h3>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{s.description}</p>
+                  <div className="mt-5 flex items-center justify-between border-t border-gold/10 pt-4">
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Clock className="h-3.5 w-3.5" /> {s.duration_minutes} د</span>
+                    <span className="text-lg font-black text-gold-gradient">{s.price_egp} <span className="text-xs font-medium text-muted-foreground">ج.م</span></span>
+                  </div>
+                  <Link to="/booking" search={{ service: s.id }} className="mt-4 block rounded-lg border border-gold/40 py-2 text-center text-sm font-bold text-gold hover:bg-gold/10">احجز هذه الخدمة</Link>
                 </div>
-                <h3 className="text-lg font-bold">{s.name}</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{s.description}</p>
-                <div className="mt-5 flex items-center justify-between border-t border-gold/10 pt-4">
-                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Clock className="h-3.5 w-3.5" /> {s.duration_minutes} د</span>
-                  <span className="text-lg font-black text-gold-gradient">{s.price_egp} <span className="text-xs font-medium text-muted-foreground">ج.م</span></span>
-                </div>
-                <Link to="/booking" search={{ service: s.id }} className="mt-4 block rounded-lg border border-gold/40 py-2 text-center text-sm font-bold text-gold hover:bg-gold/10">احجز هذه الخدمة</Link>
               </div>
             );
           })}
