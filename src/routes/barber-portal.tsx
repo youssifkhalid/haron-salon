@@ -581,7 +581,7 @@ function BookingsTab({ barber }: { barber: BarberFull }) {
     pending: "قيد المراجعة", confirmed: "مؤكد", completed: "مكتمل", cancelled: "ملغي", no_show: "لم يحضر",
   };
 
-  async function setBookingStatus(id: string, newStatus: string) {
+  async function setBookingStatus(id: string, newStatus: "pending" | "confirmed" | "completed" | "cancelled" | "no_show") {
     setBusyId(id);
     const { error } = await supabase.from("bookings").update({ status: newStatus }).eq("id", id);
     setBusyId(null);
