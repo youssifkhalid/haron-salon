@@ -6,7 +6,7 @@ import { barbersQuery } from "@/lib/queries";
 import type { BarberFull } from "@/lib/queries-barber";
 import { SocialLinks } from "@/components/site/SocialIcons";
 
-export const Route = createFileRoute("/barbers")({
+export const Route = createFileRoute("/barbers/")({
   loader: ({ context }) => context.queryClient.ensureQueryData(barbersQuery()),
   head: () => ({
     meta: [
