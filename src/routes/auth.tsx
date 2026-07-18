@@ -41,12 +41,13 @@ function AuthPage() {
     if (!email || !password) { toast.error("أدخل البريد وكلمة المرور"); return; }
     setLoading(true);
     try {
+      const safeRedirect = typeof redirect === "string" && redirect.startsWith("/") ? redirect : "/account";
       if (mode === "signup") {
         if (password.length < 8) { toast.error("كلمة السر يجب ألا تقل عن ٨ أحرف"); return; }
         const { error } = await supabase.auth.signUp({
           email, password,
           options: {
-            emailRedirectTo: `${window.location.origin}/account`,
+            emailRedirectTo: `${window.location.origin}${safeRedirect}`,
             data: { full_name: name.trim() || null, phone: phone.trim() || null },
           },
         });
@@ -57,7 +58,7 @@ function AuthPage() {
         if (error) throw error;
         toast.success("أهلاً بعودتك!");
       }
-      navigate({ to: (redirect as any) || "/account" });
+      navigate({ to: safeRedirect as any });
     } catch (err: any) {
       const msg = err?.message ?? "حدث خطأ";
       if (msg.toLowerCase().includes("invalid login")) toast.error("البريد أو كلمة السر غير صحيحة");
@@ -69,9 +70,10 @@ function AuthPage() {
   }
 
   async function google() {
+    const safeRedirect = typeof redirect === "string" && redirect.startsWith("/") ? redirect : "/account";
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}${redirect || "/account"}` },
+      options: { redirectTo: `${window.location.origin}${safeRedirect}` },
     });
     if (error) toast.error(error.message);
   }
