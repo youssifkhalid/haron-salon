@@ -8,6 +8,7 @@ import { barberPortfolioQuery, type PortfolioItem, type BarberFull } from "@/lib
 import { SocialLinks } from "@/components/site/SocialIcons";
 
 export const Route = createFileRoute("/barbers/$barberId")({
+  validateSearch: (s: Record<string, unknown>) => ({ post: typeof s.post === "string" ? s.post : undefined }),
   loader: async ({ params }) => {
     const { data, error } = await supabase.from("barbers").select("*").eq("id", params.barberId).eq("is_active", true).maybeSingle();
     if (error || !data) throw notFound();
