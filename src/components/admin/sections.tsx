@@ -430,30 +430,45 @@ export function PaymentMethodsPanel() {
       </section>
       <section>
         <h3 className="mb-3 font-display text-lg font-black">إثباتات الدفع ({proofs.length})</h3>
-        <div className="overflow-hidden rounded-2xl border border-gold/10 bg-card">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-2xl border border-gold/10 bg-card">
+          <table className="w-full text-sm min-w-[900px]">
             <thead className="bg-surface-elevated text-xs text-muted-foreground"><tr>
-              <th className="p-3 text-right">العميل</th><th className="p-3 text-right">الوسيلة</th><th className="p-3 text-right">المبلغ</th>
-              <th className="p-3 text-right">المرجع</th><th className="p-3 text-right">الحالة</th><th className="p-3 text-right">إجراء</th>
+              <th className="p-3 text-right">العميل</th>
+              <th className="p-3 text-right">الحجز</th>
+              <th className="p-3 text-right">الوسيلة</th>
+              <th className="p-3 text-right">المبلغ</th>
+              <th className="p-3 text-right">من رقم</th>
+              <th className="p-3 text-right">الحالة</th>
+              <th className="p-3 text-right">إجراء</th>
             </tr></thead>
             <tbody>
               {proofs.map((p: any) => (
-                <tr key={p.id} className="border-t border-border">
+                <tr key={p.id} className="border-t border-border align-top">
                   <td className="p-3">{p.profiles?.full_name ?? "—"}<div className="text-xs text-muted-foreground">{p.profiles?.phone}</div></td>
+                  <td className="p-3 text-xs">
+                    {p.bookings ? (
+                      <div className="space-y-0.5">
+                        <div className="font-bold">{p.bookings.services?.name ?? "خدمة"}</div>
+                        <div className="text-muted-foreground">{p.bookings.booking_date} • {String(p.bookings.booking_time).slice(0,5)}</div>
+                        <div className="text-muted-foreground">{p.bookings.customer_name} · {p.bookings.customer_phone}</div>
+                        <Badge variant="outline" className="text-[10px]">{p.bookings.status}</Badge>
+                      </div>
+                    ) : <span className="text-muted-foreground">—</span>}
+                  </td>
                   <td className="p-3 text-xs">{p.payment_methods?.name ?? "—"}</td>
                   <td className="p-3 font-bold text-gold">{Number(p.amount_egp).toFixed(0)}</td>
-                  <td className="p-3 font-mono text-xs">{p.reference ?? "—"}</td>
+                  <td className="p-3 font-mono text-xs">{p.sender_phone ?? p.reference ?? "—"}</td>
                   <td className="p-3"><Badge variant="outline" className={p.status === "approved" ? "text-emerald-400" : p.status === "rejected" ? "text-destructive" : "text-amber-400"}>{p.status}</Badge></td>
                   <td className="p-3 flex gap-1">
                     {p.status === "pending" && (<>
-                      <button onClick={() => proofAction(p.id, "approved")} className="rounded border border-emerald-500/40 px-2 py-1 text-xs text-emerald-400 hover:bg-emerald-500/10"><Check className="h-3 w-3" /></button>
-                      <button onClick={() => proofAction(p.id, "rejected")} className="rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10"><X className="h-3 w-3" /></button>
+                      <button onClick={() => proofAction(p, "approved")} className="rounded border border-emerald-500/40 px-2 py-1 text-xs text-emerald-400 hover:bg-emerald-500/10" title="موافقة وتأكيد الحجز"><Check className="h-3 w-3" /></button>
+                      <button onClick={() => proofAction(p, "rejected")} className="rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10" title="رفض وإلغاء الحجز"><X className="h-3 w-3" /></button>
                     </>)}
                     {p.image_url && <a href={p.image_url} target="_blank" rel="noreferrer" className="rounded border border-border px-2 py-1 text-xs hover:bg-accent"><ExternalLink className="h-3 w-3" /></a>}
                   </td>
                 </tr>
               ))}
-              {proofs.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">لا إثباتات دفع.</td></tr>}
+              {proofs.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">لا إثباتات دفع.</td></tr>}
             </tbody>
           </table>
         </div>
