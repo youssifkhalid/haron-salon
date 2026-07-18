@@ -60,13 +60,15 @@ export function MediaUploadField({
       fakeTimer = setInterval(() => setProgress((p) => (p !== null && p < 90 ? p + 3 : p)), 400);
     }
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || (isVideo ? "mp4" : "jpg");
+      const ext = isVideo ? (file.name.split(".").pop()?.toLowerCase() || "mp4") : "jpg";
       const path = `portfolio/${crypto.randomUUID()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("media").upload(path, file, {
+      const toUpload = isVideo ? file : await fastCompress(file);
+      const { error: upErr } = await supabase.storage.from("media").upload(path, toUpload, {
         cacheControl: "31536000",
-        contentType: file.type,
+        contentType: toUpload.type,
         upsert: false,
       });
+
       if (upErr) throw upErr;
       const { data, error } = await supabase.storage.from("media").createSignedUrl(path, TEN_YEARS);
       if (error) throw error;
