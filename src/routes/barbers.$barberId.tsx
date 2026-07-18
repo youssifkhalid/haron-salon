@@ -188,14 +188,15 @@ function BarberProfile() {
           </div>
         ) : (
           <div className="mt-4 grid grid-cols-3 gap-1 sm:gap-2">
-            {filtered.map((it) => {
+            {filtered.map((it, gi) => {
               const cover = it.media[0] ?? { media_type: it.media_type, media_url: it.media_url, thumbnail_url: it.thumbnail_url };
               const count = it.media.length || 1;
               return (
                 <button
                   key={it.id}
                   onClick={() => setLightbox(it)}
-                  className="group relative aspect-square overflow-hidden bg-black focus:outline-none focus:ring-2 focus:ring-gold/60"
+                  style={{ animationDelay: `${Math.min(gi, 20) * 30}ms` }}
+                  className="group relative aspect-square overflow-hidden rounded-md sm:rounded-lg bg-black focus:outline-none focus:ring-2 focus:ring-gold/60 animate-fade-in opacity-0 [animation-fill-mode:forwards] hover:z-10"
                   aria-label={it.caption ?? "عرض"}
                 >
                   {cover.media_type === "video" ? (
