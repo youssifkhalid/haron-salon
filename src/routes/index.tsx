@@ -162,30 +162,14 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* BARBERS */}
+      {/* BARBERS — LIVE */}
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-        <SectionHeading eyebrow="الطاقم" title="بأيدي أمهر الحلاقين" subtitle="فريق مختار بعناية، بخبرات تمتد لعقود في فن الحلاقة." />
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {barbers.map((b: Barber, i) => (
-            <div key={b.id} className="group animate-fade-up relative overflow-hidden rounded-3xl border border-gold/10 bg-surface" style={{ animationDelay: `${i * 80}ms` }}>
-              <div className="aspect-[4/5] overflow-hidden">
-                <img src={barberImgs[i % 3]} alt={b.name} className="h-full w-full object-cover transition duration-700 group-hover:scale-105" loading="lazy" />
-              </div>
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background/85 to-transparent p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold tracking-widest text-gold">{b.title}</div>
-                    <h3 className="mt-0.5 text-xl font-black">{b.name}</h3>
-                  </div>
-                  <div className="flex items-center gap-1 rounded-full bg-gold/10 px-2.5 py-1 text-xs font-bold text-gold">
-                    <Star className="h-3.5 w-3.5 fill-gold" /> {b.rating}
-                  </div>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{b.bio}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        <SectionHeading
+          eyebrow="حلاقونا الآن"
+          title="حلاقون متاحون لحجزك اليوم"
+          subtitle="تعرّف على فريقنا، شاهد أعمالهم، واحجز مع الحلاق الأنسب لك."
+        />
+        <BarbersLive barbers={barbers} />
       </section>
 
       {/* TESTIMONIALS */}
