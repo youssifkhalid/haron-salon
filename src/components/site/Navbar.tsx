@@ -34,6 +34,7 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const { user } = useAuth();
   const { isAdmin, isBarber } = useRoles(user?.id);
+  const { data: profile } = useMyProfile(user?.id);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
