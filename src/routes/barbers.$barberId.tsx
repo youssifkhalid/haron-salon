@@ -333,8 +333,11 @@ function Lightbox({
           onTouchEnd={onTouchEnd}
         >
           {cur.media_type === "video"
-            ? <video key={cur.media_url} src={cur.media_url} controls autoPlay loop playsInline className="max-h-[70vh] w-auto" />
-            : <img src={cur.media_url} alt={item.caption ?? ""} className="max-h-[70vh] w-auto object-contain" draggable={false} />}
+            ? <video key={cur.media_url} src={cur.media_url} controls autoPlay loop playsInline className="max-h-[70vh] w-auto animate-fade-in" />
+            : <img key={cur.media_url} src={cur.media_url} alt={item.caption ?? ""} className="max-h-[70vh] w-auto object-contain animate-fade-in" draggable={false} />}
+          {/* Preload neighbor images for instant swipe */}
+          {media[i + 1]?.media_type === "image" && <img src={media[i + 1].media_url} alt="" className="hidden" aria-hidden />}
+          {media[i - 1]?.media_type === "image" && <img src={media[i - 1].media_url} alt="" className="hidden" aria-hidden />}
           {many && i > 0 && (
             <button onClick={prevImg} className="hidden sm:block absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 hover:bg-black/80 p-2 text-white" aria-label="السابق">
               <ChevronRight className="h-5 w-5" />
