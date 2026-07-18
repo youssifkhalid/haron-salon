@@ -85,12 +85,15 @@ function BarberProfile() {
           <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/40 to-transparent" />
         </div>
 
-        <div className="-mt-16 px-2 sm:px-6">
+        <div className="-mt-16 px-2 sm:px-6 animate-fade-in">
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5">
-            <div className="h-28 w-28 sm:h-36 sm:w-36 rounded-full overflow-hidden border-4 border-background bg-gold-gradient grid place-items-center text-5xl font-black text-gold-foreground shadow-gold shrink-0">
-              {barber.photo_url
-                ? <img src={barber.photo_url} alt={barber.name} className="h-full w-full object-cover" />
-                : barber.name.charAt(0)}
+            <div className="relative shrink-0">
+              <div className="absolute -inset-1 rounded-full bg-gold-gradient opacity-70 blur-md animate-pulse" />
+              <div className="relative h-28 w-28 sm:h-36 sm:w-36 rounded-full overflow-hidden border-4 border-background bg-gold-gradient grid place-items-center text-5xl font-black text-gold-foreground shadow-gold ring-2 ring-gold/40 transition hover:scale-[1.02]">
+                {barber.photo_url
+                  ? <img src={barber.photo_url} alt={barber.name} className="h-full w-full object-cover" />
+                  : barber.name.charAt(0)}
+              </div>
             </div>
             <div className="flex-1 pt-3">
               <div className="flex flex-wrap items-center gap-2">
