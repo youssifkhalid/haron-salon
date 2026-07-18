@@ -2,10 +2,27 @@ import { useRef, useState } from "react";
 import { Upload, Loader2, X, Image as ImageIcon, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import imageCompression from "browser-image-compression";
 
 const TEN_YEARS = 60 * 60 * 24 * 365 * 10;
 const MAX_IMAGE_MB = 100;
 const MAX_VIDEO_MB = 500;
+
+// Aggressive but fast client-side compression to accelerate uploads.
+async function fastCompress(file: File): Promise<File> {
+  if (!file.type.startsWith("image/") || file.type === "image/gif") return file;
+  try {
+    const out = await imageCompression(file, {
+      maxSizeMB: 1.2,
+      maxWidthOrHeight: 2000,
+      useWebWorker: true,
+      initialQuality: 0.8,
+      fileType: file.type === "image/png" ? "image/png" : "image/jpeg",
+    });
+    return out.size < file.size ? (out as File) : file;
+  } catch { return file; }
+}
+
 
 export type UploadedMedia = { url: string; type: "image" | "video" };
 
