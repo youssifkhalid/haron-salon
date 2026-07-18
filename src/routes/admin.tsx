@@ -276,6 +276,7 @@ function BookingsPanel() {
   const { data: bookings = [] } = useQuery(allBookingsQuery());
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [receipt, setReceipt] = useState<any | null>(null);
 
   const filtered = useMemo(() => bookings.filter((b: any) => {
     if (statusFilter !== "all" && b.status !== statusFilter) return false;
@@ -289,6 +290,17 @@ function BookingsPanel() {
     if (error) { toast.error(error.message); return; }
     toast.success("تم تحديث الحالة");
     qc.invalidateQueries({ queryKey: ["bookings"] });
+  }
+
+  async function reviewProof(proofId: string, bookingId: string, status: "approved" | "rejected") {
+    const { error } = await supabase.from("payment_proofs").update({ status }).eq("id", proofId);
+    if (error) { toast.error(error.message); return; }
+    const newBookingStatus = status === "approved" ? "confirmed" : "cancelled";
+    await supabase.from("bookings").update({ status: newBookingStatus }).eq("id", bookingId);
+    toast.success(status === "approved" ? "تم تأكيد الحجز" : "تم رفض الإثبات");
+    setReceipt(null);
+    qc.invalidateQueries({ queryKey: ["bookings"] });
+    qc.invalidateQueries({ queryKey: ["payment_proofs"] });
   }
 
   async function deleteBooking(id: string) {
