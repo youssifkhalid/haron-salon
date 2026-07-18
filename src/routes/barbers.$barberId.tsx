@@ -316,7 +316,7 @@ function Lightbox({
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/95 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
       <button className="absolute top-4 right-4 rounded-full bg-white/10 hover:bg-white/20 p-2 text-white z-10" aria-label="إغلاق"><X className="h-6 w-6" /></button>
-      <div className="max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-surface" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-surface shadow-2xl animate-scale-in" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 border-b border-border p-3">
           <div className="h-9 w-9 rounded-full overflow-hidden bg-gold-gradient grid place-items-center text-sm font-black text-gold-foreground">
             {barber.photo_url ? <img src={barber.photo_url} className="h-full w-full object-cover" alt="" /> : barber.name.charAt(0)}
