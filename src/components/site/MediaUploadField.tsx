@@ -24,64 +24,64 @@ async function fastCompress(file: File): Promise<File> {
 }
 
 
-export type UploadedMedia = { url: string; type: "image" | "video" };
+export type UploadedMedia = { url: string; type: "image" | "video"; thumbnail_url?: string | null };
 
-/** Uploads an image OR short video to the media bucket and returns a signed URL. */
+async function uploadOne(file: File): Promise<UploadedMedia> {
+  const isVideo = file.type.startsWith("video/");
+  const maxMB = isVideo ? MAX_VIDEO_MB : MAX_IMAGE_MB;
+  if (file.size > maxMB * 1024 * 1024) throw new Error(`حجم "${file.name}" أكبر من ${maxMB} ميجا`);
+  const toUpload = isVideo ? file : await fastCompress(file);
+  const ext = isVideo ? (file.name.split(".").pop()?.toLowerCase() || "mp4") : (toUpload.type === "image/png" ? "png" : "jpg");
+  const path = `portfolio/${crypto.randomUUID()}.${ext}`;
+  const { error: upErr } = await supabase.storage.from("media").upload(path, toUpload, {
+    cacheControl: "31536000", contentType: toUpload.type, upsert: false,
+  });
+  if (upErr) throw upErr;
+  const { data, error } = await supabase.storage.from("media").createSignedUrl(path, TEN_YEARS);
+  if (error) throw error;
+  return { url: data.signedUrl, type: isVideo ? "video" : "image" };
+}
+
+/** Uploads an image OR short video to the media bucket and returns a signed URL. Supports batch. */
 export function MediaUploadField({
   onUploaded,
   accept = "image/*,video/*",
-  label = "ارفع صورة أو فيديو قصير",
+  label = "ارفع صور أو فيديو قصير",
   aspect = "aspect-square",
+  multiple = true,
 }: {
   onUploaded: (m: UploadedMedia) => void | Promise<void>;
   accept?: string;
   label?: string;
   aspect?: string;
+  multiple?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState<number | null>(null);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
-  async function upload(file: File) {
-    const isVideo = file.type.startsWith("video/");
-    const isImage = file.type.startsWith("image/");
-    if (!isVideo && !isImage) { toast.error("الملف يجب أن يكون صورة أو فيديو"); return; }
-    const maxMB = isVideo ? MAX_VIDEO_MB : MAX_IMAGE_MB;
-    if (file.size > maxMB * 1024 * 1024) {
-      toast.error(`حجم الملف أكبر من ${maxMB} ميجا`);
-      return;
-    }
+  async function uploadMany(files: File[]) {
+    const hasVideo = files.some((f) => f.type.startsWith("video/"));
+    const hasImage = files.some((f) => f.type.startsWith("image/"));
+    if (hasVideo && hasImage) { toast.error("لا يمكن دمج فيديو مع صور في نفس البوست"); return; }
+    if (hasVideo && files.length > 1) { toast.error("ارفع فيديو واحد فقط في المرة"); return; }
 
     setUploading(true);
-    setProgress(isVideo ? 5 : null);
-    // Fake steady progress for videos (Supabase SDK v2 lacks a native progress hook here).
-    let fakeTimer: any = null;
-    if (isVideo) {
-      fakeTimer = setInterval(() => setProgress((p) => (p !== null && p < 90 ? p + 3 : p)), 400);
+    setProgress({ done: 0, total: files.length });
+    let success = 0, fail = 0;
+    const chunk = 4; // parallel uploads for speed
+    for (let i = 0; i < files.length; i += chunk) {
+      const slice = files.slice(i, i + chunk);
+      const results = await Promise.allSettled(slice.map(uploadOne));
+      for (const r of results) {
+        if (r.status === "fulfilled") { await onUploaded(r.value); success++; }
+        else { fail++; toast.error(r.reason?.message ?? "فشل رفع ملف"); }
+        setProgress((p) => p ? { ...p, done: p.done + 1 } : p);
+      }
     }
-    try {
-      const ext = isVideo ? (file.name.split(".").pop()?.toLowerCase() || "mp4") : "jpg";
-      const path = `portfolio/${crypto.randomUUID()}.${ext}`;
-      const toUpload = isVideo ? file : await fastCompress(file);
-      const { error: upErr } = await supabase.storage.from("media").upload(path, toUpload, {
-        cacheControl: "31536000",
-        contentType: toUpload.type,
-        upsert: false,
-      });
-
-      if (upErr) throw upErr;
-      const { data, error } = await supabase.storage.from("media").createSignedUrl(path, TEN_YEARS);
-      if (error) throw error;
-      setProgress(100);
-      await onUploaded({ url: data.signedUrl, type: isVideo ? "video" : "image" });
-      toast.success("تم الرفع بنجاح");
-    } catch (e: any) {
-      toast.error("تعذّر الرفع: " + (e?.message ?? "خطأ"));
-    } finally {
-      if (fakeTimer) clearInterval(fakeTimer);
-      setUploading(false);
-      setTimeout(() => setProgress(null), 600);
-    }
+    setUploading(false);
+    setTimeout(() => setProgress(null), 500);
+    if (success > 0) toast.success(`تم رفع ${success} ملف${fail ? ` — فشل ${fail}` : ""}`);
   }
 
   return (
@@ -95,10 +95,13 @@ export function MediaUploadField({
         {uploading ? (
           <>
             <Loader2 className="h-6 w-6 animate-spin text-gold" />
-            <span className="text-sm font-bold">جارٍ الرفع...</span>
-            {progress !== null && (
+            <span className="text-sm font-bold">
+              {progress ? `جارٍ الرفع ${progress.done}/${progress.total}` : "جارٍ الرفع..."}
+            </span>
+            {progress && (
               <div className="w-3/4 h-2 rounded-full bg-muted overflow-hidden">
-                <div className="h-full bg-gold-gradient transition-all duration-300" style={{ width: `${progress}%` }} />
+                <div className="h-full bg-gold-gradient transition-all duration-300"
+                  style={{ width: `${(progress.done / Math.max(1, progress.total)) * 100}%` }} />
               </div>
             )}
           </>
@@ -113,7 +116,9 @@ export function MediaUploadField({
               <Upload className="h-4 w-4 text-gold" />
               <span className="text-sm font-bold">{label}</span>
             </div>
-            <span className="text-[11px] text-muted-foreground">صور حتى {MAX_IMAGE_MB}MB — فيديو حتى {MAX_VIDEO_MB}MB</span>
+            <span className="text-[11px] text-muted-foreground">
+              {multiple ? "يمكنك اختيار عدة صور دفعة واحدة" : "ملف واحد"} — صور حتى {MAX_IMAGE_MB}MB / فيديو حتى {MAX_VIDEO_MB}MB
+            </span>
           </>
         )}
       </button>
@@ -121,8 +126,13 @@ export function MediaUploadField({
         ref={inputRef}
         type="file"
         accept={accept}
+        multiple={multiple}
         className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }}
+        onChange={(e) => {
+          const files = Array.from(e.target.files ?? []);
+          if (files.length) uploadMany(files);
+          e.target.value = "";
+        }}
       />
     </div>
   );

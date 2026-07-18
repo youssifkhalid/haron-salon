@@ -8,6 +8,7 @@ import { barberPortfolioQuery, type PortfolioItem, type BarberFull } from "@/lib
 import { SocialLinks } from "@/components/site/SocialIcons";
 
 export const Route = createFileRoute("/barbers/$barberId")({
+  validateSearch: (s: Record<string, unknown>) => ({ post: typeof s.post === "string" ? s.post : undefined }),
   loader: async ({ params }) => {
     const { data, error } = await supabase.from("barbers").select("*").eq("id", params.barberId).eq("is_active", true).maybeSingle();
     if (error || !data) throw notFound();
@@ -46,9 +47,17 @@ const DAY_KEY_TODAY = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
 function BarberProfile() {
   const { barber } = Route.useLoaderData();
+  const search = Route.useSearch();
   const { data: portfolio = [] } = useQuery(barberPortfolioQuery(barber.id));
   const [lightbox, setLightbox] = useState<PortfolioItem | null>(null);
   const [tab, setTab] = useState<"all" | "reels">("all");
+
+  useEffect(() => {
+    if (search.post && portfolio.length) {
+      const hit = portfolio.find((p) => p.id === search.post);
+      if (hit) setLightbox(hit);
+    }
+  }, [search.post, portfolio]);
 
   const filtered = useMemo(
     () => tab === "reels" ? portfolio.filter((p) => p.media_type === "video") : portfolio,
