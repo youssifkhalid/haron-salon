@@ -166,6 +166,7 @@ function AdminPage() {
           {section === "banners" && <BannersPanel />}
           {section === "pages" && <ContentPagesPanel />}
           {section === "notifications" && <NotificationTemplatesPanel />}
+          {section === "qrcodes" && <QRCodesPanel />}
           {section === "permissions" && <PermissionsPanel />}
           {section === "audit" && <AuditLogPanel />}
           {section === "backup" && <BackupPanel />}
