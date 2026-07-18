@@ -161,7 +161,7 @@ export const myBookingsQuery = (userId: string | undefined) => ({
   queryFn: async () => {
     const { data, error } = await supabase
       .from("bookings")
-      .select("*, services(name, duration_minutes), barbers(name)")
+      .select("*, services(name, duration_minutes), barbers(name), booking_services(id, price_egp, duration_minutes, services(name)), payment_proofs(id, status, amount_egp)")
       .eq("user_id", userId!)
       .order("booking_date", { ascending: false })
       .order("booking_time", { ascending: false });
