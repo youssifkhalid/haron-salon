@@ -385,11 +385,20 @@ export function PaymentMethodsPanel() {
   const qc = useQueryClient();
   const [dialog, setDialog] = useState<{ open: boolean; editing?: any }>({ open: false });
 
-  async function proofAction(id: string, status: "approved" | "rejected") {
-    const { error } = await supabase.from("payment_proofs").update({ status }).eq("id", id);
+  async function proofAction(p: any, status: "approved" | "rejected") {
+    const { error } = await supabase.from("payment_proofs").update({ status }).eq("id", p.id);
     if (error) { toast.error(error.message); return; }
-    toast.success("تم");
+    if (p.booking_id) {
+      const newBookingStatus = status === "approved" ? "confirmed" : "cancelled";
+      const notes = status === "rejected" ? "تم رفض إثبات الدفع" : null;
+      const patch: any = { status: newBookingStatus };
+      if (notes) patch.notes = notes;
+      const { error: bErr } = await supabase.from("bookings").update(patch).eq("id", p.booking_id);
+      if (bErr) toast.error("تم تحديث الإثبات لكن تعذّر تحديث الحجز: " + bErr.message);
+    }
+    toast.success(status === "approved" ? "تم تأكيد الحجز" : "تم رفض إثبات الدفع وإلغاء الحجز");
     qc.invalidateQueries({ queryKey: ["payment_proofs"] });
+    qc.invalidateQueries({ queryKey: ["bookings"] });
   }
 
   return (
