@@ -134,6 +134,7 @@ export type Database = {
           caption: string | null
           created_at: string
           id: string
+          is_pinned: boolean
           media_type: string
           media_url: string
           sort_order: number
@@ -145,6 +146,7 @@ export type Database = {
           caption?: string | null
           created_at?: string
           id?: string
+          is_pinned?: boolean
           media_type: string
           media_url: string
           sort_order?: number
@@ -156,6 +158,7 @@ export type Database = {
           caption?: string | null
           created_at?: string
           id?: string
+          is_pinned?: boolean
           media_type?: string
           media_url?: string
           sort_order?: number
@@ -168,6 +171,44 @@ export type Database = {
             columns: ["barber_id"]
             isOneToOne: false
             referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      barber_portfolio_media: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          media_type: string
+          media_url: string
+          sort_order: number
+          thumbnail_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          media_type: string
+          media_url: string
+          sort_order?: number
+          thumbnail_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          media_type?: string
+          media_url?: string
+          sort_order?: number
+          thumbnail_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "barber_portfolio_media_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "barber_portfolio_items"
             referencedColumns: ["id"]
           },
         ]
@@ -309,6 +350,7 @@ export type Database = {
           id: string
           notes: string | null
           price_egp: number
+          reference_portfolio_item_id: string | null
           service_id: string
           status: Database["public"]["Enums"]["booking_status"]
           updated_at: string
@@ -324,6 +366,7 @@ export type Database = {
           id?: string
           notes?: string | null
           price_egp: number
+          reference_portfolio_item_id?: string | null
           service_id: string
           status?: Database["public"]["Enums"]["booking_status"]
           updated_at?: string
@@ -339,6 +382,7 @@ export type Database = {
           id?: string
           notes?: string | null
           price_egp?: number
+          reference_portfolio_item_id?: string | null
           service_id?: string
           status?: Database["public"]["Enums"]["booking_status"]
           updated_at?: string
@@ -350,6 +394,13 @@ export type Database = {
             columns: ["barber_id"]
             isOneToOne: false
             referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_reference_portfolio_item_id_fkey"
+            columns: ["reference_portfolio_item_id"]
+            isOneToOne: false
+            referencedRelation: "barber_portfolio_items"
             referencedColumns: ["id"]
           },
           {
