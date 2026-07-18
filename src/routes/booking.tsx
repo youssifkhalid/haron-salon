@@ -168,7 +168,7 @@ function BookingPage() {
   }
 
   async function createBooking(status: "pending" | "pending_payment") {
-    const isGuest = !user && (!!search.guest);
+    const isGuest = !user;
     if (!user && !isGuest) {
       toast.error("سجّل دخولك أولاً");
       navigate({ to: "/auth", search: { redirect: "/booking" } });
@@ -217,7 +217,7 @@ function BookingPage() {
 
 
   async function submitWithDeposit() {
-    const isGuest = !user && (!!search.guest);
+    const isGuest = !user;
     if (!user && !isGuest) { toast.error("سجّل دخولك أولاً"); return; }
     if (!methodId) { toast.error("اختر وسيلة دفع"); return; }
     if (!senderPhone.trim()) { toast.error("أدخل رقم الهاتف الذي حوّلت منه"); return; }
@@ -509,8 +509,7 @@ function BookingPage() {
 
               {!user && (
                 <div className="mt-4 rounded-xl border border-gold/40 bg-gold/5 p-4 text-sm">
-                  ستحتاج لتسجيل الدخول لتأكيد الحجز.{" "}
-                  <Link to="/auth" search={{ redirect: "/booking" }} className="font-bold text-gold underline">سجّل دخولك الآن</Link>
+                  يمكنك إتمام الحجز كضيف بدون تسجيل دخول. الحساب مطلوب فقط للمزايا والباقات وتتبع الحجوزات.
                 </div>
               )}
             </div>
@@ -594,6 +593,7 @@ function BookingPage() {
                     <MediaUploadField
                       accept="image/*"
                       aspect="aspect-video"
+                      folder="payment-proofs"
                       label="ارفع صورة سكرين شوت التحويل"
                       onUploaded={({ url }) => setProofUrl(url)}
                     />

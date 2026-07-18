@@ -28,13 +28,14 @@ async function fastCompress(file: File): Promise<File> {
 
 export type UploadedMedia = { url: string; type: "image" | "video"; thumbnail_url?: string | null };
 
-async function uploadOne(file: File): Promise<UploadedMedia> {
+async function uploadOne(file: File, folder = "portfolio"): Promise<UploadedMedia> {
   const isVideo = file.type.startsWith("video/");
   const maxMB = isVideo ? MAX_VIDEO_MB : MAX_IMAGE_MB;
   if (file.size > maxMB * 1024 * 1024) throw new Error(`حجم "${file.name}" أكبر من ${maxMB} ميجا`);
   const toUpload = isVideo ? file : await fastCompress(file);
   const ext = isVideo ? (file.name.split(".").pop()?.toLowerCase() || "mp4") : (toUpload.type === "image/png" ? "png" : "jpg");
-  const path = `portfolio/${crypto.randomUUID()}.${ext}`;
+  const safeFolder = folder.replace(/^\/+|\/+$/g, "") || "portfolio";
+  const path = `${safeFolder}/${crypto.randomUUID()}.${ext}`;
   const { error: upErr } = await supabase.storage.from("media").upload(path, toUpload, {
     cacheControl: "31536000", contentType: toUpload.type, upsert: false,
   });
@@ -51,12 +52,14 @@ export function MediaUploadField({
   label = "ارفع صور أو فيديو قصير",
   aspect = "aspect-square",
   multiple = true,
+  folder = "portfolio",
 }: {
   onUploaded: (m: UploadedMedia) => void | Promise<void>;
   accept?: string;
   label?: string;
   aspect?: string;
   multiple?: boolean;
+  folder?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -77,7 +80,7 @@ export function MediaUploadField({
     const chunk = files.length > 12 ? 8 : files.length;
     for (let i = 0; i < files.length; i += chunk) {
       const slice = files.slice(i, i + chunk);
-      const results = await Promise.allSettled(slice.map(uploadOne));
+      const results = await Promise.allSettled(slice.map((file) => uploadOne(file, folder)));
       for (const r of results) {
         if (r.status === "fulfilled") { await onUploaded(r.value); success++; }
         else { fail++; toast.error(r.reason?.message ?? "فشل رفع ملف"); }
@@ -162,7 +165,7 @@ export function SingleImageUpload({
     try {
       const compressed = await fastCompress(file);
       const ext = compressed.type === "image/png" ? "png" : "jpg";
-      const path = `${crypto.randomUUID()}.${ext}`;
+      const path = `profiles/${crypto.randomUUID()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("media").upload(path, compressed, {
         cacheControl: "31536000", contentType: compressed.type, upsert: false,
       });
