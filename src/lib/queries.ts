@@ -175,7 +175,7 @@ export const allBookingsQuery = () => ({
   queryFn: async () => {
     const { data, error } = await supabase
       .from("bookings")
-      .select("*, services(name), barbers(name), profiles(full_name, phone)")
+      .select("*, services(name), barbers(name), profiles(full_name, phone), booking_services(id, price_egp, duration_minutes, services(name)), payment_proofs(id, status, amount_egp, image_url, sender_phone)")
       .order("booking_date", { ascending: false })
       .order("booking_time", { ascending: false })
       .limit(500);
