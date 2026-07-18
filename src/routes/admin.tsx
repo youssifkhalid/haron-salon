@@ -147,12 +147,27 @@ function AdminPage() {
 
         <main className="p-4 sm:p-6">
           {section === "overview" && <OverviewPanel />}
+          {section === "reports" && <ReportsPanel />}
           {section === "bookings" && <BookingsPanel />}
+          {section === "payments" && <PaymentMethodsPanel />}
+          {section === "policies" && <BookingPoliciesPanel />}
+          {section === "pos" && <POSPanel />}
+          {section === "expenses" && <ExpensesPanel />}
           {section === "services" && <ServicesPanel />}
           {section === "barbers" && <BarbersPanel />}
           {section === "gallery" && <GalleryPanel />}
           {section === "reviews" && <ReviewsPanel />}
           {section === "users" && <UsersPanel />}
+          {section === "crm" && <CRMPanel />}
+          {section === "promotions" && <PromotionsPanel />}
+          {section === "subscriptions" && <SubscriptionPlansPanel />}
+          {section === "inbox" && <InboxPanel />}
+          {section === "banners" && <BannersPanel />}
+          {section === "pages" && <ContentPagesPanel />}
+          {section === "notifications" && <NotificationTemplatesPanel />}
+          {section === "permissions" && <PermissionsPanel />}
+          {section === "audit" && <AuditLogPanel />}
+          {section === "backup" && <BackupPanel />}
           {section === "settings" && <SettingsPanel />}
         </main>
       </div>
