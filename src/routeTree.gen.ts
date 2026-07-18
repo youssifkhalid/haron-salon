@@ -18,11 +18,13 @@ import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as BookingRouteImport } from './routes/booking'
 import { Route as BarbersRouteImport } from './routes/barbers'
+import { Route as BarberPortalRouteImport } from './routes/barber-portal'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PagesSlugRouteImport } from './routes/pages.$slug'
+import { Route as BarbersBarberIdRouteImport } from './routes/barbers.$barberId'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
@@ -73,6 +75,11 @@ const BarbersRoute = BarbersRouteImport.update({
   path: '/barbers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BarberPortalRoute = BarberPortalRouteImport.update({
+  id: '/barber-portal',
+  path: '/barber-portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -97,6 +104,11 @@ const PagesSlugRoute = PagesSlugRouteImport.update({
   id: '/pages/$slug',
   path: '/pages/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const BarbersBarberIdRoute = BarbersBarberIdRouteImport.update({
+  id: '/$barberId',
+  path: '/$barberId',
+  getParentRoute: () => BarbersRoute,
 } as any)
 const Char91DotwellKnownChar93OauthProtectedResourceRoute =
   Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
@@ -127,7 +139,8 @@ export interface FileRoutesByFullPath {
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
-  '/barbers': typeof BarbersRoute
+  '/barber-portal': typeof BarberPortalRoute
+  '/barbers': typeof BarbersRouteWithChildren
   '/booking': typeof BookingRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
@@ -138,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/barbers/$barberId': typeof BarbersBarberIdRoute
   '/pages/$slug': typeof PagesSlugRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -147,7 +161,8 @@ export interface FileRoutesByTo {
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
-  '/barbers': typeof BarbersRoute
+  '/barber-portal': typeof BarberPortalRoute
+  '/barbers': typeof BarbersRouteWithChildren
   '/booking': typeof BookingRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
@@ -158,6 +173,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/barbers/$barberId': typeof BarbersBarberIdRoute
   '/pages/$slug': typeof PagesSlugRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -168,7 +184,8 @@ export interface FileRoutesById {
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
-  '/barbers': typeof BarbersRoute
+  '/barber-portal': typeof BarberPortalRoute
+  '/barbers': typeof BarbersRouteWithChildren
   '/booking': typeof BookingRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
@@ -179,6 +196,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/barbers/$barberId': typeof BarbersBarberIdRoute
   '/pages/$slug': typeof PagesSlugRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -190,6 +208,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/auth'
+    | '/barber-portal'
     | '/barbers'
     | '/booking'
     | '/contact'
@@ -201,6 +220,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/barbers/$barberId'
     | '/pages/$slug'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -210,6 +230,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/auth'
+    | '/barber-portal'
     | '/barbers'
     | '/booking'
     | '/contact'
@@ -221,6 +242,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/barbers/$barberId'
     | '/pages/$slug'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -230,6 +252,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/auth'
+    | '/barber-portal'
     | '/barbers'
     | '/booking'
     | '/contact'
@@ -241,6 +264,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/barbers/$barberId'
     | '/pages/$slug'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -251,7 +275,8 @@ export interface RootRouteChildren {
   AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
-  BarbersRoute: typeof BarbersRoute
+  BarberPortalRoute: typeof BarberPortalRoute
+  BarbersRoute: typeof BarbersRouteWithChildren
   BookingRoute: typeof BookingRoute
   ContactRoute: typeof ContactRoute
   GalleryRoute: typeof GalleryRoute
@@ -332,6 +357,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BarbersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/barber-portal': {
+      id: '/barber-portal'
+      path: '/barber-portal'
+      fullPath: '/barber-portal'
+      preLoaderRoute: typeof BarberPortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -367,6 +399,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PagesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/barbers/$barberId': {
+      id: '/barbers/$barberId'
+      path: '/$barberId'
+      fullPath: '/barbers/$barberId'
+      preLoaderRoute: typeof BarbersBarberIdRouteImport
+      parentRoute: typeof BarbersRoute
+    }
     '/.well-known/oauth-protected-resource': {
       id: '/.well-known/oauth-protected-resource'
       path: '/.well-known/oauth-protected-resource'
@@ -398,12 +437,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface BarbersRouteChildren {
+  BarbersBarberIdRoute: typeof BarbersBarberIdRoute
+}
+
+const BarbersRouteChildren: BarbersRouteChildren = {
+  BarbersBarberIdRoute: BarbersBarberIdRoute,
+}
+
+const BarbersRouteWithChildren =
+  BarbersRoute._addFileChildren(BarbersRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
-  BarbersRoute: BarbersRoute,
+  BarberPortalRoute: BarberPortalRoute,
+  BarbersRoute: BarbersRouteWithChildren,
   BookingRoute: BookingRoute,
   ContactRoute: ContactRoute,
   GalleryRoute: GalleryRoute,

@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { Menu, X, User, LogOut, LayoutDashboard } from "lucide-react";
+import { Menu, X, User, LogOut, LayoutDashboard, Scissors } from "lucide-react";
 import { Logo } from "./Logo";
 import { useAuth, useRoles } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,7 +20,7 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { user } = useAuth();
-  const { isAdmin } = useRoles(user?.id);
+  const { isAdmin, isBarber } = useRoles(user?.id);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -58,6 +58,11 @@ export function Navbar() {
               {isAdmin && (
                 <Link to="/admin" className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-accent inline-flex items-center gap-1.5">
                   <LayoutDashboard className="h-4 w-4" /> الإدارة
+                </Link>
+              )}
+              {(isBarber || isAdmin) && (
+                <Link to="/barber-portal" className="rounded-lg border border-gold/40 px-3 py-2 text-sm font-semibold text-gold hover:bg-gold/10 inline-flex items-center gap-1.5">
+                  <Scissors className="h-4 w-4" /> بوابة الحلاق
                 </Link>
               )}
               <Link to="/account" className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-accent inline-flex items-center gap-1.5">
