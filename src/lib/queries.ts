@@ -6,7 +6,10 @@ export type Service = {
 };
 export type Barber = {
   id: string; name: string; title: string | null; bio: string | null;
-  photo_url: string | null; rating: number | null; is_active: boolean; sort_order: number;
+  photo_url: string | null; cover_url?: string | null; rating: number | null;
+  is_active: boolean; sort_order: number; chair_number?: number | null;
+  is_present_now?: boolean; whatsapp?: string | null; instagram?: string | null;
+  tiktok?: string | null; facebook?: string | null;
 };
 export type Booking = {
   id: string; user_id: string; service_id: string; barber_id: string | null;
