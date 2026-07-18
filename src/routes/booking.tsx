@@ -168,7 +168,8 @@ function BookingPage() {
   }
 
   async function createBooking(status: "pending" | "pending_payment") {
-    if (!user) {
+    const isGuest = !user && (!!search.guest);
+    if (!user && !isGuest) {
       toast.error("سجّل دخولك أولاً");
       navigate({ to: "/auth", search: { redirect: "/booking" } });
       return null;
@@ -178,7 +179,8 @@ function BookingPage() {
     }
     const primary = selectedServices[0];
     const { data, error } = await supabase.from("bookings").insert({
-      user_id: user.id,
+      user_id: user?.id ?? null,
+      is_guest: isGuest,
       service_id: primary.id,
       barber_id: barberId || null,
       booking_date: date,
@@ -201,6 +203,7 @@ function BookingPage() {
     if (bsErr) console.warn("booking_services insert warning:", bsErr.message);
     return data.id as string;
   }
+
 
   async function submitWithoutDeposit() {
     setSubmitting(true);
