@@ -212,11 +212,12 @@ function StatCard({ icon: Icon, label, value, tone = "gold" }: any) {
 }
 
 /* =============================== BOOKINGS =============================== */
-const statuses = ["pending", "confirmed", "completed", "cancelled", "no_show"] as const;
+const statuses = ["pending_payment", "pending", "confirmed", "completed", "cancelled", "no_show"] as const;
 const statusLabel: Record<string, string> = {
-  pending: "بانتظار التأكيد", confirmed: "مؤكد", completed: "مكتمل", cancelled: "ملغي", no_show: "لم يحضر",
+  pending_payment: "بانتظار الدفع", pending: "بانتظار التأكيد", confirmed: "مؤكد", completed: "مكتمل", cancelled: "ملغي", no_show: "لم يحضر",
 };
 const statusColor: Record<string, string> = {
+  pending_payment: "bg-orange-500/10 text-orange-400",
   pending: "bg-amber-500/10 text-amber-400",
   confirmed: "bg-blue-500/10 text-blue-400",
   completed: "bg-emerald-500/10 text-emerald-400",
