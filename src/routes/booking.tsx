@@ -384,29 +384,40 @@ function BookingPage() {
               </div>
 
               <h2 className="mt-6 mb-3 text-lg font-bold inline-flex items-center gap-2"><Clock className="h-5 w-5 text-gold" /> اختر الوقت</h2>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
-                {TIMES.map((t) => {
-                  const isTaken = takenTimes.includes(t);
-                  return (
-                    <button
-                      key={t}
-                      disabled={isTaken}
-                      onClick={() => setTime(t)}
-                      className={`rounded-lg border px-2 py-2 text-sm font-bold transition ${
-                        isTaken
-                          ? "cursor-not-allowed border-border/50 text-muted-foreground/40 line-through"
-                          : time === t
-                          ? "border-gold bg-gold-gradient text-gold-foreground shadow-gold"
-                          : "border-border hover:border-gold/40"
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  );
-                })}
-              </div>
+              {barberIsOffToday ? (
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 text-sm text-amber-200">
+                  الحلاق ده مش متاح يوم <b>{dayLabelAr[dayKeyOfDate ?? ""] ?? ""}</b>. اختر يوم تاني أو اختر <button onClick={() => setBarberId("")} className="underline font-bold">أي حلاق متاح</button>.
+                </div>
+              ) : availableTimes.length === 0 ? (
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 text-sm text-amber-200">
+                  لا يوجد أوقات تناسب مدة الخدمات ضمن ساعات عمل الحلاق في هذا اليوم.
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+                  {availableTimes.map((t) => {
+                    const isTaken = takenTimes.includes(t);
+                    return (
+                      <button
+                        key={t}
+                        disabled={isTaken}
+                        onClick={() => setTime(t)}
+                        className={`rounded-lg border px-2 py-2 text-sm font-bold transition ${
+                          isTaken
+                            ? "cursor-not-allowed border-border/50 text-muted-foreground/40 line-through"
+                            : time === t
+                            ? "border-gold bg-gold-gradient text-gold-foreground shadow-gold"
+                            : "border-border hover:border-gold/40"
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
+
 
           {step === 4 && (
             <div className="animate-fade-up">
