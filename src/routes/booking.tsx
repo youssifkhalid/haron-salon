@@ -20,7 +20,9 @@ const searchSchema = z.object({
   service: z.string().optional(),
   barber: z.string().optional(),
   ref: z.string().optional(),
+  guest: z.union([z.literal("1"), z.literal("true"), z.boolean()]).optional(),
 });
+
 
 export const Route = createFileRoute("/booking")({
   validateSearch: searchSchema,
