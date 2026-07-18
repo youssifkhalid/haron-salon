@@ -145,11 +145,13 @@ export function SingleImageUpload({
     if (file.size > MAX_IMAGE_MB * 1024 * 1024) { toast.error(`حجم الصورة أكبر من ${MAX_IMAGE_MB} ميجا`); return; }
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const compressed = await fastCompress(file);
+      const ext = compressed.type === "image/png" ? "png" : "jpg";
       const path = `${crypto.randomUUID()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("media").upload(path, file, {
-        cacheControl: "31536000", contentType: file.type, upsert: false,
+      const { error: upErr } = await supabase.storage.from("media").upload(path, compressed, {
+        cacheControl: "31536000", contentType: compressed.type, upsert: false,
       });
+
       if (upErr) throw upErr;
       const { data, error } = await supabase.storage.from("media").createSignedUrl(path, TEN_YEARS);
       if (error) throw error;
