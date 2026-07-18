@@ -1278,6 +1278,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_guest_booking: { Args: { _booking_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "staff" | "customer" | "barber"
