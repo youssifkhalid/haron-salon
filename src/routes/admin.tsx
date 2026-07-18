@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   CalendarCheck, Clock, Users, DollarSign, LayoutDashboard, Scissors, UserCog, Image as ImageIcon,
   Star, Settings, Shield, LogOut, Menu, X as XIcon, Check, Search, TrendingUp, Eye, EyeOff,
+  Tag, Wallet, CreditCard, MessageSquare, FileText, Megaphone, Bell, ClipboardList, BarChart3, ShieldCheck, Database,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth, useRoles } from "@/lib/auth";
@@ -17,23 +18,46 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EntityDialog, ConfirmButton, AddButton, IconEdit, IconDelete, type Field } from "@/components/admin/EntityDialog";
+import {
+  PromotionsPanel, ExpensesPanel, SubscriptionPlansPanel, ContentPagesPanel, BannersPanel,
+  PaymentMethodsPanel, BookingPoliciesPanel, NotificationTemplatesPanel, CRMPanel, InboxPanel,
+  AuditLogPanel, PermissionsPanel, ReportsPanel, POSPanel, BackupPanel,
+} from "@/components/admin/sections";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "لوحة الإدارة — صالون هارون" }, { name: "robots", content: "noindex" }] }),
   component: AdminPage,
 });
 
-type Section = "overview" | "bookings" | "services" | "barbers" | "gallery" | "reviews" | "users" | "settings";
+type Section =
+  | "overview" | "bookings" | "payments" | "policies" | "services" | "barbers" | "gallery" | "reviews"
+  | "users" | "crm" | "promotions" | "subscriptions" | "pos" | "expenses" | "reports"
+  | "inbox" | "notifications" | "banners" | "pages" | "permissions" | "audit" | "backup" | "settings";
 
-const nav: { key: Section; label: string; icon: any }[] = [
-  { key: "overview", label: "نظرة عامة", icon: LayoutDashboard },
-  { key: "bookings", label: "الحجوزات", icon: CalendarCheck },
-  { key: "services", label: "الخدمات", icon: Scissors },
-  { key: "barbers", label: "الحلاقين", icon: UserCog },
-  { key: "gallery", label: "المعرض", icon: ImageIcon },
-  { key: "reviews", label: "التقييمات", icon: Star },
-  { key: "users", label: "المستخدمون", icon: Users },
-  { key: "settings", label: "الإعدادات", icon: Settings },
+const nav: { key: Section; label: string; icon: any; group: string }[] = [
+  { key: "overview", label: "نظرة عامة", icon: LayoutDashboard, group: "الرئيسية" },
+  { key: "reports", label: "التقارير المالية", icon: BarChart3, group: "الرئيسية" },
+  { key: "bookings", label: "الحجوزات", icon: CalendarCheck, group: "العمليات" },
+  { key: "payments", label: "الدفع والإيصالات", icon: CreditCard, group: "العمليات" },
+  { key: "policies", label: "سياسة الحجز والعربون", icon: Wallet, group: "العمليات" },
+  { key: "pos", label: "نقاط البيع", icon: DollarSign, group: "العمليات" },
+  { key: "expenses", label: "المصروفات", icon: Wallet, group: "العمليات" },
+  { key: "services", label: "الخدمات", icon: Scissors, group: "الكتالوج" },
+  { key: "barbers", label: "الحلاقين", icon: UserCog, group: "الكتالوج" },
+  { key: "gallery", label: "المعرض", icon: ImageIcon, group: "الكتالوج" },
+  { key: "reviews", label: "التقييمات", icon: Star, group: "الكتالوج" },
+  { key: "users", label: "المستخدمون", icon: Users, group: "العملاء" },
+  { key: "crm", label: "CRM والولاء", icon: TrendingUp, group: "العملاء" },
+  { key: "promotions", label: "العروض والكوبونات", icon: Tag, group: "العملاء" },
+  { key: "subscriptions", label: "باقات الاشتراك", icon: ClipboardList, group: "العملاء" },
+  { key: "inbox", label: "الرسائل الواردة", icon: MessageSquare, group: "العملاء" },
+  { key: "banners", label: "البانرات", icon: Megaphone, group: "المحتوى" },
+  { key: "pages", label: "صفحات المحتوى", icon: FileText, group: "المحتوى" },
+  { key: "notifications", label: "قوالب الإشعارات", icon: Bell, group: "المحتوى" },
+  { key: "permissions", label: "الصلاحيات", icon: ShieldCheck, group: "النظام" },
+  { key: "audit", label: "سجل التدقيق", icon: ShieldCheck, group: "النظام" },
+  { key: "backup", label: "النسخ الاحتياطي", icon: Database, group: "النظام" },
+  { key: "settings", label: "الإعدادات", icon: Settings, group: "النظام" },
 ];
 
 function AdminPage() {
