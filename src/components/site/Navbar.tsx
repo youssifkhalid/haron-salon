@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Menu, X, User, LogOut, LayoutDashboard, Scissors } from "lucide-react";
 import { Logo } from "./Logo";
 import { useAuth, useRoles } from "@/lib/auth";
@@ -10,11 +11,23 @@ const links = [
   { to: "/", label: "الرئيسية" },
   { to: "/services", label: "الخدمات" },
   { to: "/barbers", label: "الحلاقين" },
+  { to: "/subscriptions", label: "الباقات" },
   { to: "/gallery", label: "المعرض" },
   { to: "/reviews", label: "الآراء" },
   { to: "/booking", label: "احجز" },
   { to: "/contact", label: "تواصل" },
 ];
+
+function useMyProfile(userId?: string) {
+  return useQuery({
+    queryKey: ["profile", "me", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id, full_name, avatar_url").eq("id", userId!).maybeSingle();
+      return data;
+    },
+  });
+}
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
