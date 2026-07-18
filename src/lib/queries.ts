@@ -62,10 +62,29 @@ export const auditLogQuery = () => ({
 export const blackoutDatesQuery = () => simpleList("blackout_dates", "blackout_date");
 export const waitlistQuery = () => simpleList("waitlist");
 export const paymentMethodsQuery = () => simpleList("payment_methods", "sort_order", true);
+export const activePaymentMethodsQuery = () => ({
+  queryKey: ["payment_methods", "active"],
+  queryFn: async () => {
+    const { data, error } = await supabase.from("payment_methods").select("*").eq("is_active", true).order("sort_order");
+    if (error) throw error;
+    return data ?? [];
+  },
+});
+export const bookingPolicyQuery = () => ({
+  queryKey: ["site_settings", "booking_policy"],
+  queryFn: async () => {
+    const { data, error } = await supabase.from("site_settings").select("*").eq("key", "booking_policy").maybeSingle();
+    if (error) throw error;
+    return (data?.value ?? {}) as Record<string, any>;
+  },
+});
 export const paymentProofsQuery = () => ({
   queryKey: ["payment_proofs"],
   queryFn: async () => {
-    const { data, error } = await supabase.from("payment_proofs").select("*, payment_methods(name), profiles(full_name,phone)").order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("payment_proofs")
+      .select("*, payment_methods(name), profiles(full_name,phone), bookings(id,booking_date,booking_time,status,customer_name,customer_phone,services(name))")
+      .order("created_at", { ascending: false });
     if (error) throw error;
     return data ?? [];
   },
@@ -142,7 +161,7 @@ export const myBookingsQuery = (userId: string | undefined) => ({
   queryFn: async () => {
     const { data, error } = await supabase
       .from("bookings")
-      .select("*, services(name, duration_minutes), barbers(name)")
+      .select("*, services(name, duration_minutes), barbers(name), booking_services(id, price_egp, duration_minutes, services(name)), payment_proofs(id, status, amount_egp)")
       .eq("user_id", userId!)
       .order("booking_date", { ascending: false })
       .order("booking_time", { ascending: false });
@@ -156,7 +175,7 @@ export const allBookingsQuery = () => ({
   queryFn: async () => {
     const { data, error } = await supabase
       .from("bookings")
-      .select("*, services(name), barbers(name), profiles(full_name, phone)")
+      .select("*, services(name), barbers(name), profiles(full_name, phone), booking_services(id, price_egp, duration_minutes, services(name)), payment_proofs(id, status, amount_egp, image_url, sender_phone)")
       .order("booking_date", { ascending: false })
       .order("booking_time", { ascending: false })
       .limit(500);

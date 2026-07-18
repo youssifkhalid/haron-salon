@@ -212,11 +212,12 @@ function StatCard({ icon: Icon, label, value, tone = "gold" }: any) {
 }
 
 /* =============================== BOOKINGS =============================== */
-const statuses = ["pending", "confirmed", "completed", "cancelled", "no_show"] as const;
+const statuses = ["pending_payment", "pending", "confirmed", "completed", "cancelled", "no_show"] as const;
 const statusLabel: Record<string, string> = {
-  pending: "بانتظار التأكيد", confirmed: "مؤكد", completed: "مكتمل", cancelled: "ملغي", no_show: "لم يحضر",
+  pending_payment: "بانتظار الدفع", pending: "بانتظار التأكيد", confirmed: "مؤكد", completed: "مكتمل", cancelled: "ملغي", no_show: "لم يحضر",
 };
 const statusColor: Record<string, string> = {
+  pending_payment: "bg-orange-500/10 text-orange-400",
   pending: "bg-amber-500/10 text-amber-400",
   confirmed: "bg-blue-500/10 text-blue-400",
   completed: "bg-emerald-500/10 text-emerald-400",
@@ -288,7 +289,20 @@ function BookingsPanel() {
                     <div className="text-xs text-muted-foreground font-mono">{b.customer_phone}</div>
                     {b.notes && <div className="mt-1 text-xs text-muted-foreground line-clamp-1">📝 {b.notes}</div>}
                   </td>
-                  <td className="p-3">{b.services?.name}</td>
+                  <td className="p-3">
+                    {(b.booking_services && b.booking_services.length > 0) ? (
+                      <div className="space-y-0.5">
+                        {b.booking_services.map((bs: any) => (
+                          <div key={bs.id} className="text-xs">
+                            <span className="font-bold">{bs.services?.name}</span>
+                            <span className="text-muted-foreground"> · {Number(bs.price_egp).toFixed(0)} ج.م</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <span>{b.services?.name}</span>
+                    )}
+                  </td>
                   <td className="p-3">{b.barbers?.name ?? "—"}</td>
                   <td className="p-3 font-mono text-xs">{b.booking_date}</td>
                   <td className="p-3 font-mono text-xs">{String(b.booking_time).slice(0, 5)}</td>

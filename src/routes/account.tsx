@@ -14,6 +14,7 @@ export const Route = createFileRoute("/account")({
 });
 
 const statusLabel: Record<string, { label: string; cls: string }> = {
+  pending_payment: { label: "بانتظار مراجعة الدفع", cls: "bg-amber-500/10 text-amber-300 border-amber-500/30" },
   pending: { label: "بانتظار التأكيد", cls: "bg-amber-500/10 text-amber-300 border-amber-500/30" },
   confirmed: { label: "مؤكد", cls: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" },
   completed: { label: "مكتمل", cls: "bg-blue-500/10 text-blue-300 border-blue-500/30" },
@@ -85,13 +86,23 @@ function AccountPage() {
 }
 
 function BookingCard({ b, onCancel }: { b: any; onCancel?: (id: string) => void }) {
-  const s = statusLabel[b.status];
+  const s = statusLabel[b.status] ?? { label: b.status, cls: "" };
+  const services = (b.booking_services ?? []).map((bs: any) => bs.services?.name).filter(Boolean);
+  const primaryTitle = services.length > 0 ? services.join(" + ") : (b.services?.name ?? "خدمة");
+  const proof = Array.isArray(b.payment_proofs) ? b.payment_proofs[0] : null;
+  const proofLabel: Record<string, { text: string; cls: string }> = {
+    pending: { text: "بانتظار مراجعة الدفع", cls: "text-amber-300 border-amber-500/30 bg-amber-500/10" },
+    approved: { text: "تم تأكيد الدفع", cls: "text-emerald-300 border-emerald-500/30 bg-emerald-500/10" },
+    rejected: { text: "تم رفض إثبات الدفع — تواصل معنا", cls: "text-rose-300 border-rose-500/30 bg-rose-500/10" },
+  };
+  const pl = proof ? proofLabel[proof.status] : null;
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-2xl border border-gold/10 bg-card p-4 sm:p-5">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-base font-black">{b.services?.name ?? "خدمة"}</h3>
+          <h3 className="text-base font-black">{primaryTitle}</h3>
           <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${s.cls}`}>{s.label}</span>
+          {pl && <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${pl.cls}`}>{pl.text}</span>}
         </div>
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1"><CalendarCheck className="h-3.5 w-3.5" /> {b.booking_date}</span>

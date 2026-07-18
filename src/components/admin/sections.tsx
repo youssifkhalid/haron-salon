@@ -385,11 +385,20 @@ export function PaymentMethodsPanel() {
   const qc = useQueryClient();
   const [dialog, setDialog] = useState<{ open: boolean; editing?: any }>({ open: false });
 
-  async function proofAction(id: string, status: "approved" | "rejected") {
-    const { error } = await supabase.from("payment_proofs").update({ status }).eq("id", id);
+  async function proofAction(p: any, status: "approved" | "rejected") {
+    const { error } = await supabase.from("payment_proofs").update({ status }).eq("id", p.id);
     if (error) { toast.error(error.message); return; }
-    toast.success("تم");
+    if (p.booking_id) {
+      const newBookingStatus = status === "approved" ? "confirmed" : "cancelled";
+      const notes = status === "rejected" ? "تم رفض إثبات الدفع" : null;
+      const patch: any = { status: newBookingStatus };
+      if (notes) patch.notes = notes;
+      const { error: bErr } = await supabase.from("bookings").update(patch).eq("id", p.booking_id);
+      if (bErr) toast.error("تم تحديث الإثبات لكن تعذّر تحديث الحجز: " + bErr.message);
+    }
+    toast.success(status === "approved" ? "تم تأكيد الحجز" : "تم رفض إثبات الدفع وإلغاء الحجز");
     qc.invalidateQueries({ queryKey: ["payment_proofs"] });
+    qc.invalidateQueries({ queryKey: ["bookings"] });
   }
 
   return (
@@ -421,30 +430,45 @@ export function PaymentMethodsPanel() {
       </section>
       <section>
         <h3 className="mb-3 font-display text-lg font-black">إثباتات الدفع ({proofs.length})</h3>
-        <div className="overflow-hidden rounded-2xl border border-gold/10 bg-card">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-2xl border border-gold/10 bg-card">
+          <table className="w-full text-sm min-w-[900px]">
             <thead className="bg-surface-elevated text-xs text-muted-foreground"><tr>
-              <th className="p-3 text-right">العميل</th><th className="p-3 text-right">الوسيلة</th><th className="p-3 text-right">المبلغ</th>
-              <th className="p-3 text-right">المرجع</th><th className="p-3 text-right">الحالة</th><th className="p-3 text-right">إجراء</th>
+              <th className="p-3 text-right">العميل</th>
+              <th className="p-3 text-right">الحجز</th>
+              <th className="p-3 text-right">الوسيلة</th>
+              <th className="p-3 text-right">المبلغ</th>
+              <th className="p-3 text-right">من رقم</th>
+              <th className="p-3 text-right">الحالة</th>
+              <th className="p-3 text-right">إجراء</th>
             </tr></thead>
             <tbody>
               {proofs.map((p: any) => (
-                <tr key={p.id} className="border-t border-border">
+                <tr key={p.id} className="border-t border-border align-top">
                   <td className="p-3">{p.profiles?.full_name ?? "—"}<div className="text-xs text-muted-foreground">{p.profiles?.phone}</div></td>
+                  <td className="p-3 text-xs">
+                    {p.bookings ? (
+                      <div className="space-y-0.5">
+                        <div className="font-bold">{p.bookings.services?.name ?? "خدمة"}</div>
+                        <div className="text-muted-foreground">{p.bookings.booking_date} • {String(p.bookings.booking_time).slice(0,5)}</div>
+                        <div className="text-muted-foreground">{p.bookings.customer_name} · {p.bookings.customer_phone}</div>
+                        <Badge variant="outline" className="text-[10px]">{p.bookings.status}</Badge>
+                      </div>
+                    ) : <span className="text-muted-foreground">—</span>}
+                  </td>
                   <td className="p-3 text-xs">{p.payment_methods?.name ?? "—"}</td>
                   <td className="p-3 font-bold text-gold">{Number(p.amount_egp).toFixed(0)}</td>
-                  <td className="p-3 font-mono text-xs">{p.reference ?? "—"}</td>
+                  <td className="p-3 font-mono text-xs">{p.sender_phone ?? p.reference ?? "—"}</td>
                   <td className="p-3"><Badge variant="outline" className={p.status === "approved" ? "text-emerald-400" : p.status === "rejected" ? "text-destructive" : "text-amber-400"}>{p.status}</Badge></td>
                   <td className="p-3 flex gap-1">
                     {p.status === "pending" && (<>
-                      <button onClick={() => proofAction(p.id, "approved")} className="rounded border border-emerald-500/40 px-2 py-1 text-xs text-emerald-400 hover:bg-emerald-500/10"><Check className="h-3 w-3" /></button>
-                      <button onClick={() => proofAction(p.id, "rejected")} className="rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10"><X className="h-3 w-3" /></button>
+                      <button onClick={() => proofAction(p, "approved")} className="rounded border border-emerald-500/40 px-2 py-1 text-xs text-emerald-400 hover:bg-emerald-500/10" title="موافقة وتأكيد الحجز"><Check className="h-3 w-3" /></button>
+                      <button onClick={() => proofAction(p, "rejected")} className="rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10" title="رفض وإلغاء الحجز"><X className="h-3 w-3" /></button>
                     </>)}
                     {p.image_url && <a href={p.image_url} target="_blank" rel="noreferrer" className="rounded border border-border px-2 py-1 text-xs hover:bg-accent"><ExternalLink className="h-3 w-3" /></a>}
                   </td>
                 </tr>
               ))}
-              {proofs.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">لا إثباتات دفع.</td></tr>}
+              {proofs.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">لا إثباتات دفع.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -506,6 +530,20 @@ export function BookingPoliciesPanel() {
           <div><Label>فترة فاصلة بين الحجوزات (دقائق)</Label><Input type="number" value={val.buffer_minutes ?? 0} onChange={(e) => setDraft({ ...draft, buffer_minutes: Number(e.target.value) })} /></div>
           <div><Label>الحد الأقصى للحجوزات اليومية لكل حلاق</Label><Input type="number" value={val.max_daily_per_barber ?? 0} onChange={(e) => setDraft({ ...draft, max_daily_per_barber: Number(e.target.value) })} /></div>
           <div><Label>نافذة الإلغاء (ساعات قبل الموعد)</Label><Input type="number" value={val.cancel_window_hours ?? 0} onChange={(e) => setDraft({ ...draft, cancel_window_hours: Number(e.target.value) })} /></div>
+        </div>
+        <div className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+          <h4 className="mb-3 font-black text-amber-300">العربون (Deposit)</h4>
+          <div className="grid gap-3 sm:grid-cols-2 items-end">
+            <div className="flex items-center gap-2">
+              <Switch checked={!!val.deposit_required} onCheckedChange={(v) => setDraft({ ...draft, deposit_required: v })} />
+              <Label>طلب عربون قبل تأكيد الحجز</Label>
+            </div>
+            <div>
+              <Label>قيمة العربون (ج.م)</Label>
+              <Input type="number" min={0} value={val.deposit_amount_egp ?? 0} onChange={(e) => setDraft({ ...draft, deposit_amount_egp: Number(e.target.value) })} />
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">عند التفعيل: يظهر للعميل خطوة دفع إضافية مع وسائل الدفع المفعّلة، ويُنشأ الحجز بحالة "بانتظار الدفع" حتى تراجع الإدارة الإثبات.</p>
         </div>
         <Button onClick={saveSettings} disabled={Object.keys(draft).length === 0} className="mt-4 bg-gold-gradient text-gold-foreground">حفظ القواعد</Button>
       </section>
