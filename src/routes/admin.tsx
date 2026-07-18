@@ -437,7 +437,8 @@ const serviceFields: Field[] = [
   { name: "description", label: "الوصف", type: "textarea" },
   { name: "price_egp", label: "السعر (ج.م)", type: "number", required: true },
   { name: "duration_minutes", label: "المدة (دقائق)", type: "number", required: true },
-  { name: "icon", label: "الأيقونة (اسم رمز)", placeholder: "scissors" },
+  { name: "image_url", label: "صورة الخدمة (اختياري)", type: "image" },
+  { name: "icon", label: "الأيقونة (اختياري — اسم رمز)", placeholder: "scissors" },
   { name: "sort_order", label: "الترتيب", type: "number" },
   { name: "is_active", label: "مفعّلة", type: "boolean" },
 ];
@@ -476,24 +477,31 @@ function ServicesPanel() {
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {services.map((s: any) => (
-          <div key={s.id} className={`rounded-2xl border p-4 transition ${s.is_active ? "border-gold/10 bg-card" : "border-border bg-muted/20 opacity-70"}`}>
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <h3 className="font-bold truncate">{s.name}</h3>
-                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{s.description}</p>
+          <div key={s.id} className={`overflow-hidden rounded-2xl border transition ${s.is_active ? "border-gold/10 bg-card" : "border-border bg-muted/20 opacity-70"}`}>
+            {s.image_url && (
+              <div className="aspect-[16/9] overflow-hidden bg-muted">
+                <img src={s.image_url} alt={s.name} loading="lazy" className="h-full w-full object-cover" />
               </div>
-              <span className="shrink-0 font-black text-gold">{s.price_egp} ج.م</span>
-            </div>
-            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-              <span>⏱ {s.duration_minutes}د</span>
-              <span>#{s.sort_order}</span>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              <button onClick={() => setDialog({ open: true, editing: s })} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-bold hover:bg-accent"><IconEdit /> تعديل</button>
-              <button onClick={() => toggle(s)} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-bold hover:bg-accent">
-                {s.is_active ? <><EyeOff className="h-3.5 w-3.5" /> تعطيل</> : <><Eye className="h-3.5 w-3.5" /> تفعيل</>}
-              </button>
-              <ConfirmButton onConfirm={() => del(s.id)}><IconDelete /> حذف</ConfirmButton>
+            )}
+            <div className="p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-bold truncate">{s.name}</h3>
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{s.description}</p>
+                </div>
+                <span className="shrink-0 font-black text-gold">{s.price_egp} ج.م</span>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                <span>⏱ {s.duration_minutes}د</span>
+                <span>#{s.sort_order}</span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <button onClick={() => setDialog({ open: true, editing: s })} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-bold hover:bg-accent"><IconEdit /> تعديل</button>
+                <button onClick={() => toggle(s)} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-bold hover:bg-accent">
+                  {s.is_active ? <><EyeOff className="h-3.5 w-3.5" /> تعطيل</> : <><Eye className="h-3.5 w-3.5" /> تفعيل</>}
+                </button>
+                <ConfirmButton onConfirm={() => del(s.id)}><IconDelete /> حذف</ConfirmButton>
+              </div>
             </div>
           </div>
         ))}

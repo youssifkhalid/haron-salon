@@ -372,8 +372,9 @@ export function BannersPanel() {
 /* ============ PAYMENT METHODS ============ */
 const pmFields: Field[] = [
   { name: "name", label: "الاسم", required: true },
+  { name: "logo_url", label: "شعار الوسيلة (اختياري)", type: "image" },
   { name: "provider", label: "المزوّد", placeholder: "vodafone_cash / instapay / cash" },
-  { name: "account_info", label: "رقم التحويل / الحساب", placeholder: "مثال: 01001234567 (رقم فودافون كاش أو انستا باي) — رقم فقط بدون رابط" },
+  { name: "account_info", label: "رقم التحويل / الحساب", placeholder: "مثال: 01001234567 — رقم فقط بدون رابط" },
   { name: "instructions", label: "تعليمات للعميل", type: "textarea", placeholder: "مثال: حوّل المبلغ ثم ارفع صورة الإيصال" },
   { name: "sort_order", label: "الترتيب", type: "number" },
   { name: "is_active", label: "مفعّلة", type: "boolean" },
@@ -411,10 +412,17 @@ export function PaymentMethodsPanel() {
         <div className="grid gap-3 md:grid-cols-2">
           {rows.map((p: any) => (
             <div key={p.id} className={`rounded-2xl border p-4 ${p.is_active ? "border-gold/10 bg-card" : "border-border bg-muted/20 opacity-70"}`}>
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="font-bold">{p.name}</div>
-                  <div className="text-xs text-muted-foreground">{p.provider ?? "—"}</div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 min-w-0">
+                  {p.logo_url ? (
+                    <img src={p.logo_url} alt={p.name} className="h-12 w-12 rounded-lg object-cover border border-border shrink-0" />
+                  ) : (
+                    <div className="grid h-12 w-12 place-items-center rounded-lg bg-gold/10 text-gold shrink-0"><CreditCard className="h-5 w-5" /></div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="font-bold truncate">{p.name}</div>
+                    <div className="text-xs text-muted-foreground truncate">{p.provider ?? "—"}</div>
+                  </div>
                 </div>
                 <Switch checked={p.is_active} onCheckedChange={() => crud.toggle(p, "is_active")} />
               </div>
@@ -478,7 +486,7 @@ export function PaymentMethodsPanel() {
           title={dialog.editing ? "تعديل وسيلة دفع" : "إضافة وسيلة دفع"} fields={pmFields}
           initial={dialog.editing ?? { is_active: true, sort_order: rows.length }}
           onSubmit={async (v: any) => {
-            await crud.save({ ...v, sort_order: Number(v.sort_order || 0), account_info: v.account_info || null, instructions: v.instructions || null, provider: v.provider || null }, dialog.editing?.id);
+            await crud.save({ ...v, sort_order: Number(v.sort_order || 0), account_info: v.account_info || null, instructions: v.instructions || null, provider: v.provider || null, logo_url: v.logo_url || null }, dialog.editing?.id);
           }} />
       )}
     </div>
