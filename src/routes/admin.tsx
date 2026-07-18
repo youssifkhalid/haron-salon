@@ -405,7 +405,12 @@ const barberFields: Field[] = [
   { name: "name", label: "الاسم", required: true },
   { name: "title", label: "المسمى الوظيفي", placeholder: "حلاق أول" },
   { name: "bio", label: "نبذة", type: "textarea" },
-  { name: "photo_url", label: "صورة الحلاق", type: "image" },
+  { name: "photo_url", label: "الصورة الشخصية", type: "image" },
+  { name: "cover_url", label: "صورة الغلاف", type: "image" },
+  { name: "whatsapp", label: "واتساب", placeholder: "01012345678" },
+  { name: "instagram", label: "انستجرام (رابط أو @user)" },
+  { name: "tiktok", label: "تيك توك (رابط أو @user)" },
+  { name: "facebook", label: "فيسبوك (رابط أو username)" },
   { name: "rating", label: "التقييم (1-5)", type: "number" },
   { name: "sort_order", label: "الترتيب", type: "number" },
   { name: "is_active", label: "مفعّل", type: "boolean" },
@@ -414,11 +419,28 @@ const barberFields: Field[] = [
 function BarbersPanel() {
   const qc = useQueryClient();
   const { data: barbers = [] } = useQuery(allBarbersQuery());
+  const { data: users = [] } = useQuery(usersAdminQuery());
+  const { data: portfolioCounts = {} } = useQuery({
+    queryKey: ["barber-portfolio-counts"],
+    queryFn: async () => {
+      const { data } = await supabase.from("barber_portfolio_items").select("barber_id");
+      const map: Record<string, number> = {};
+      for (const r of (data ?? [])) map[(r as any).barber_id] = (map[(r as any).barber_id] ?? 0) + 1;
+      return map;
+    },
+  });
   const [dialog, setDialog] = useState<{ open: boolean; editing?: any }>({ open: false });
+  const [linkFor, setLinkFor] = useState<any | null>(null);
 
   async function save(v: any) {
-    const payload: any = { ...v, rating: v.rating ? Number(v.rating) : null, sort_order: Number(v.sort_order || 0) };
-    if (!payload.photo_url) payload.photo_url = null;
+    const payload: any = {
+      ...v,
+      rating: v.rating ? Number(v.rating) : null,
+      sort_order: Number(v.sort_order || 0),
+    };
+    for (const k of ["photo_url", "cover_url", "whatsapp", "instagram", "tiktok", "facebook", "bio", "title"]) {
+      if (!payload[k]) payload[k] = null;
+    }
     const { error } = dialog.editing
       ? await supabase.from("barbers").update(payload).eq("id", dialog.editing.id)
       : await supabase.from("barbers").insert(payload);
@@ -435,6 +457,20 @@ function BarbersPanel() {
   async function toggle(b: any) {
     await supabase.from("barbers").update({ is_active: !b.is_active }).eq("id", b.id);
     qc.invalidateQueries({ queryKey: ["barbers"] });
+  }
+  async function linkUser(barber: any, userId: string | null) {
+    const { error } = await supabase.from("barbers").update({ user_id: userId }).eq("id", barber.id);
+    if (error) { toast.error(error.message); return; }
+    if (userId) {
+      // grant barber role (best-effort)
+      await supabase.from("user_roles").upsert({ user_id: userId, role: "barber" as any });
+      toast.success("تم ربط الحساب ومنح دور الحلاق");
+    } else {
+      toast.success("تم فك الربط");
+    }
+    qc.invalidateQueries({ queryKey: ["barbers"] });
+    qc.invalidateQueries({ queryKey: ["admin", "users"] });
+    setLinkFor(null);
   }
 
   return (
@@ -459,10 +495,20 @@ function BarbersPanel() {
                 <div className="inline-flex items-center gap-1 text-gold"><Star className="h-3.5 w-3.5 fill-current" /> {Number(b.rating ?? 5).toFixed(1)}</div>
               </div>
               {b.bio && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{b.bio}</p>}
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                <span className="rounded-full bg-gold/10 px-2 py-0.5 text-gold font-bold">{portfolioCounts[b.id] ?? 0} عمل</span>
+                {b.user_id
+                  ? <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-emerald-500 font-bold">حساب مربوط ✓</span>
+                  : <span className="rounded-full bg-muted px-2 py-0.5 font-bold">بدون حساب</span>}
+                {b.is_present_now && <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-emerald-500 font-bold">متواجد الآن</span>}
+              </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 <button onClick={() => setDialog({ open: true, editing: b })} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-bold hover:bg-accent"><IconEdit /> تعديل</button>
                 <button onClick={() => toggle(b)} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-bold hover:bg-accent">
                   {b.is_active ? <><EyeOff className="h-3.5 w-3.5" /> تعطيل</> : <><Eye className="h-3.5 w-3.5" /> تفعيل</>}
+                </button>
+                <button onClick={() => setLinkFor(b)} className="inline-flex items-center gap-1 rounded-lg border border-gold/40 px-2.5 py-1.5 text-xs font-bold text-gold hover:bg-gold/10">
+                  {b.user_id ? "إدارة الحساب" : "ربط حساب"}
                 </button>
                 <ConfirmButton onConfirm={() => del(b.id)}><IconDelete /> حذف</ConfirmButton>
               </div>
@@ -477,9 +523,55 @@ function BarbersPanel() {
           initial={dialog.editing ?? { is_active: true, rating: 5, sort_order: barbers.length }}
           onSubmit={save} />
       )}
+      {linkFor && <LinkBarberAccountDialog barber={linkFor} users={users} onClose={() => setLinkFor(null)} onLink={linkUser} />}
     </div>
   );
 }
+
+function LinkBarberAccountDialog({ barber, users, onClose, onLink }: {
+  barber: any; users: any[]; onClose: () => void; onLink: (b: any, uid: string | null) => void;
+}) {
+  const [q, setQ] = useState("");
+  const filtered = users.filter((u: any) => {
+    if (!q.trim()) return true;
+    const s = q.toLowerCase();
+    return (u.full_name ?? "").toLowerCase().includes(s) || (u.phone ?? "").includes(s) || u.id.includes(s);
+  }).slice(0, 20);
+  const current = users.find((u) => u.id === barber.user_id);
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4" onClick={onClose}>
+      <div className="w-full max-w-lg rounded-2xl border border-gold/20 bg-card p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-lg font-black">ربط حساب دخول للحلاق: {barber.name}</h3>
+          <button onClick={onClose} className="rounded p-1 hover:bg-accent"><XIcon className="h-4 w-4" /></button>
+        </div>
+        {current && (
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 flex items-center justify-between">
+            <div>
+              <div className="text-xs text-muted-foreground">مربوط حاليًا بـ</div>
+              <div className="font-bold">{current.full_name}</div>
+              <div className="text-xs font-mono text-muted-foreground">{current.phone ?? current.id}</div>
+            </div>
+            <button onClick={() => onLink(barber, null)} className="rounded-lg border border-destructive/40 px-3 py-1.5 text-xs font-bold text-destructive hover:bg-destructive/10">فك الربط</button>
+          </div>
+        )}
+        <Input placeholder="ابحث بالاسم أو الرقم..." value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="max-h-72 space-y-1 overflow-y-auto">
+          {filtered.map((u: any) => (
+            <button key={u.id} onClick={() => onLink(barber, u.id)}
+              disabled={u.id === barber.user_id}
+              className="w-full text-right rounded-lg border border-border p-3 hover:bg-accent hover:border-gold/40 transition disabled:opacity-50">
+              <div className="font-bold">{u.full_name ?? "بدون اسم"}</div>
+              <div className="text-xs text-muted-foreground">{u.phone ?? "—"} • أدوار: {(u.roles ?? []).join(", ") || "لا يوجد"}</div>
+            </button>
+          ))}
+          {filtered.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">لا يوجد مستخدمون مطابقون.</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 /* =============================== GALLERY =============================== */
 const galleryFields: Field[] = [

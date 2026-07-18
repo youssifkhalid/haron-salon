@@ -128,39 +128,107 @@ export type Database = {
         }
         Relationships: []
       }
+      barber_portfolio_items: {
+        Row: {
+          barber_id: string
+          caption: string | null
+          created_at: string
+          id: string
+          media_type: string
+          media_url: string
+          sort_order: number
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          barber_id: string
+          caption?: string | null
+          created_at?: string
+          id?: string
+          media_type: string
+          media_url: string
+          sort_order?: number
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          barber_id?: string
+          caption?: string | null
+          created_at?: string
+          id?: string
+          media_type?: string
+          media_url?: string
+          sort_order?: number
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "barber_portfolio_items_barber_id_fkey"
+            columns: ["barber_id"]
+            isOneToOne: false
+            referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       barbers: {
         Row: {
           bio: string | null
+          cover_url: string | null
           created_at: string
+          facebook: string | null
           id: string
+          instagram: string | null
           is_active: boolean
+          is_present_now: boolean
           name: string
           photo_url: string | null
           rating: number | null
           sort_order: number
+          tiktok: string | null
           title: string | null
+          user_id: string | null
+          whatsapp: string | null
+          working_hours: Json | null
         }
         Insert: {
           bio?: string | null
+          cover_url?: string | null
           created_at?: string
+          facebook?: string | null
           id?: string
+          instagram?: string | null
           is_active?: boolean
+          is_present_now?: boolean
           name: string
           photo_url?: string | null
           rating?: number | null
           sort_order?: number
+          tiktok?: string | null
           title?: string | null
+          user_id?: string | null
+          whatsapp?: string | null
+          working_hours?: Json | null
         }
         Update: {
           bio?: string | null
+          cover_url?: string | null
           created_at?: string
+          facebook?: string | null
           id?: string
+          instagram?: string | null
           is_active?: boolean
+          is_present_now?: boolean
           name?: string
           photo_url?: string | null
           rating?: number | null
           sort_order?: number
+          tiktok?: string | null
           title?: string | null
+          user_id?: string | null
+          whatsapp?: string | null
+          working_hours?: Json | null
         }
         Relationships: []
       }
@@ -1051,7 +1119,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "staff" | "customer"
+      app_role: "admin" | "staff" | "customer" | "barber"
       booking_status:
         | "pending"
         | "confirmed"
@@ -1185,7 +1253,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "staff", "customer"],
+      app_role: ["admin", "staff", "customer", "barber"],
       booking_status: [
         "pending",
         "confirmed",
