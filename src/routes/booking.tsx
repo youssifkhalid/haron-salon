@@ -421,6 +421,25 @@ function BookingPage() {
 
           {step === 4 && (
             <div className="animate-fade-up">
+              {referenceItem && (() => {
+                const refMedia = (referenceItem as any).media?.slice().sort((a: any, b: any) => a.sort_order - b.sort_order)[0]
+                  ?? { media_url: (referenceItem as any).media_url, thumbnail_url: (referenceItem as any).thumbnail_url, media_type: (referenceItem as any).media_type };
+                const src = refMedia.thumbnail_url ?? refMedia.media_url;
+                return (
+                  <div className="mb-5 flex items-center gap-3 rounded-2xl border border-gold/30 bg-gold/5 p-3">
+                    <div className="relative shrink-0 h-20 w-20 rounded-xl overflow-hidden bg-black">
+                      {refMedia.media_type === "video" && refMedia.thumbnail_url === null
+                        ? <video src={refMedia.media_url} className="h-full w-full object-cover" muted playsInline />
+                        : <img src={src} className="h-full w-full object-cover" alt="" />}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-black text-gold">أنت طلبت هذا الشكل</div>
+                      {(referenceItem as any).caption && <div className="mt-0.5 text-xs text-foreground/80 line-clamp-2">{(referenceItem as any).caption}</div>}
+                      <div className="mt-1 text-[10px] text-muted-foreground">سيتم إرسال هذا المرجع للحلاق مع حجزك.</div>
+                    </div>
+                  </div>
+                );
+              })()}
               <h2 className="mb-4 text-lg font-bold">بياناتك للتواصل</h2>
               <div className="grid gap-3">
                 <label className="block">
