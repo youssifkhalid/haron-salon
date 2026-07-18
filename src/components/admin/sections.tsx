@@ -373,8 +373,8 @@ export function BannersPanel() {
 const pmFields: Field[] = [
   { name: "name", label: "الاسم", required: true },
   { name: "provider", label: "المزوّد", placeholder: "vodafone_cash / instapay / cash" },
-  { name: "account_info", label: "رقم/معلومات الحساب" },
-  { name: "instructions", label: "تعليمات للعميل", type: "textarea" },
+  { name: "account_info", label: "رقم التحويل / الحساب", placeholder: "مثال: 01001234567 (رقم فودافون كاش أو انستا باي) — رقم فقط بدون رابط" },
+  { name: "instructions", label: "تعليمات للعميل", type: "textarea", placeholder: "مثال: حوّل المبلغ ثم ارفع صورة الإيصال" },
   { name: "sort_order", label: "الترتيب", type: "number" },
   { name: "is_active", label: "مفعّلة", type: "boolean" },
 ];

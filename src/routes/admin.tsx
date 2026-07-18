@@ -276,6 +276,7 @@ function BookingsPanel() {
   const { data: bookings = [] } = useQuery(allBookingsQuery());
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [receipt, setReceipt] = useState<any | null>(null);
 
   const filtered = useMemo(() => bookings.filter((b: any) => {
     if (statusFilter !== "all" && b.status !== statusFilter) return false;
@@ -289,6 +290,17 @@ function BookingsPanel() {
     if (error) { toast.error(error.message); return; }
     toast.success("تم تحديث الحالة");
     qc.invalidateQueries({ queryKey: ["bookings"] });
+  }
+
+  async function reviewProof(proofId: string, bookingId: string, status: "approved" | "rejected") {
+    const { error } = await supabase.from("payment_proofs").update({ status }).eq("id", proofId);
+    if (error) { toast.error(error.message); return; }
+    const newBookingStatus = status === "approved" ? "confirmed" : "cancelled";
+    await supabase.from("bookings").update({ status: newBookingStatus }).eq("id", bookingId);
+    toast.success(status === "approved" ? "تم تأكيد الحجز" : "تم رفض الإثبات");
+    setReceipt(null);
+    qc.invalidateQueries({ queryKey: ["bookings"] });
+    qc.invalidateQueries({ queryKey: ["payment_proofs"] });
   }
 
   async function deleteBooking(id: string) {
@@ -323,12 +335,15 @@ function BookingsPanel() {
                 <th className="p-3 text-right">التاريخ</th>
                 <th className="p-3 text-right">الوقت</th>
                 <th className="p-3 text-right">السعر</th>
+                <th className="p-3 text-right">الإيصال</th>
                 <th className="p-3 text-right">الحالة</th>
                 <th className="p-3 text-right">إجراء</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((b: any) => (
+              {filtered.map((b: any) => {
+                const proof = b.payment_proofs?.[0];
+                return (
                 <tr key={b.id} className="border-t border-border hover:bg-accent/10">
                   <td className="p-3">
                     <div className="font-bold">{b.customer_name}</div>
@@ -354,6 +369,19 @@ function BookingsPanel() {
                   <td className="p-3 font-mono text-xs">{String(b.booking_time).slice(0, 5)}</td>
                   <td className="p-3 font-bold text-gold">{Number(b.price_egp).toFixed(0)}</td>
                   <td className="p-3">
+                    {proof?.image_url ? (
+                      <button
+                        onClick={() => setReceipt({ ...proof, booking_id: b.id })}
+                        className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-bold hover:bg-accent ${proof.status === "pending" ? "border-amber-500/40 text-amber-400 animate-pulse" : proof.status === "approved" ? "border-emerald-500/40 text-emerald-400" : "border-destructive/40 text-destructive"}`}
+                        title="عرض إيصال الدفع"
+                      >
+                        <ImageIcon className="h-3 w-3" /> عرض
+                      </button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </td>
+                  <td className="p-3">
                     <select value={b.status} onChange={(e) => updateStatus(b.id, e.target.value)}
                       className={`rounded-lg border border-border px-2 py-1 text-xs font-bold ${statusColor[b.status]}`}>
                       {statuses.map((s) => <option key={s} value={s}>{statusLabel[s]}</option>)}
@@ -365,14 +393,40 @@ function BookingsPanel() {
                     </ConfirmButton>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               {filtered.length === 0 && (
-                <tr><td colSpan={8} className="p-10 text-center text-muted-foreground">لا توجد حجوزات مطابقة.</td></tr>
+                <tr><td colSpan={9} className="p-10 text-center text-muted-foreground">لا توجد حجوزات مطابقة.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {receipt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setReceipt(null)}>
+          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-auto rounded-2xl border border-gold/20 bg-card p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="font-display text-lg font-black">إيصال الدفع</h3>
+              <button onClick={() => setReceipt(null)} className="rounded-lg p-1 hover:bg-accent"><XIcon className="h-4 w-4" /></button>
+            </div>
+            <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
+              <div className="rounded-lg border border-border bg-surface-elevated p-2"><div className="text-muted-foreground">المبلغ</div><div className="font-bold text-gold">{Number(receipt.amount_egp || 0).toFixed(0)} ج.م</div></div>
+              <div className="rounded-lg border border-border bg-surface-elevated p-2"><div className="text-muted-foreground">من رقم</div><div className="font-mono font-bold">{receipt.sender_phone ?? "—"}</div></div>
+              <div className="rounded-lg border border-border bg-surface-elevated p-2 col-span-2"><div className="text-muted-foreground">الحالة</div><Badge variant="outline" className={receipt.status === "approved" ? "text-emerald-400" : receipt.status === "rejected" ? "text-destructive" : "text-amber-400"}>{receipt.status}</Badge></div>
+            </div>
+            <a href={receipt.image_url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-border">
+              <img src={receipt.image_url} alt="إيصال الدفع" className="w-full object-contain" />
+            </a>
+            {receipt.status === "pending" && (
+              <div className="mt-4 flex gap-2">
+                <Button onClick={() => reviewProof(receipt.id, receipt.booking_id, "approved")} className="flex-1 bg-emerald-500 text-white hover:bg-emerald-600"><Check className="h-4 w-4" /> تأكيد الحجز</Button>
+                <Button onClick={() => reviewProof(receipt.id, receipt.booking_id, "rejected")} variant="outline" className="flex-1 border-destructive/40 text-destructive"><XIcon className="h-4 w-4" /> رفض</Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
