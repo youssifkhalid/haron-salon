@@ -2,10 +2,27 @@ import { useRef, useState } from "react";
 import { Upload, Loader2, X, Image as ImageIcon, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import imageCompression from "browser-image-compression";
 
 const TEN_YEARS = 60 * 60 * 24 * 365 * 10;
 const MAX_IMAGE_MB = 100;
 const MAX_VIDEO_MB = 500;
+
+// Aggressive but fast client-side compression to accelerate uploads.
+async function fastCompress(file: File): Promise<File> {
+  if (!file.type.startsWith("image/") || file.type === "image/gif") return file;
+  try {
+    const out = await imageCompression(file, {
+      maxSizeMB: 1.2,
+      maxWidthOrHeight: 2000,
+      useWebWorker: true,
+      initialQuality: 0.8,
+      fileType: file.type === "image/png" ? "image/png" : "image/jpeg",
+    });
+    return out.size < file.size ? (out as File) : file;
+  } catch { return file; }
+}
+
 
 export type UploadedMedia = { url: string; type: "image" | "video" };
 
@@ -43,13 +60,15 @@ export function MediaUploadField({
       fakeTimer = setInterval(() => setProgress((p) => (p !== null && p < 90 ? p + 3 : p)), 400);
     }
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || (isVideo ? "mp4" : "jpg");
+      const ext = isVideo ? (file.name.split(".").pop()?.toLowerCase() || "mp4") : "jpg";
       const path = `portfolio/${crypto.randomUUID()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("media").upload(path, file, {
+      const toUpload = isVideo ? file : await fastCompress(file);
+      const { error: upErr } = await supabase.storage.from("media").upload(path, toUpload, {
         cacheControl: "31536000",
-        contentType: file.type,
+        contentType: toUpload.type,
         upsert: false,
       });
+
       if (upErr) throw upErr;
       const { data, error } = await supabase.storage.from("media").createSignedUrl(path, TEN_YEARS);
       if (error) throw error;
@@ -126,11 +145,13 @@ export function SingleImageUpload({
     if (file.size > MAX_IMAGE_MB * 1024 * 1024) { toast.error(`حجم الصورة أكبر من ${MAX_IMAGE_MB} ميجا`); return; }
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const compressed = await fastCompress(file);
+      const ext = compressed.type === "image/png" ? "png" : "jpg";
       const path = `${crypto.randomUUID()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("media").upload(path, file, {
-        cacheControl: "31536000", contentType: file.type, upsert: false,
+      const { error: upErr } = await supabase.storage.from("media").upload(path, compressed, {
+        cacheControl: "31536000", contentType: compressed.type, upsert: false,
       });
+
       if (upErr) throw upErr;
       const { data, error } = await supabase.storage.from("media").createSignedUrl(path, TEN_YEARS);
       if (error) throw error;

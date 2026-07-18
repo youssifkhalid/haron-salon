@@ -124,12 +124,25 @@ export function ImageUploadField({
 
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      // Fast client-side compression for quicker upload
+      let toUpload: File = file;
+      if (file.type !== "image/gif") {
+        try {
+          const { default: imageCompression } = await import("browser-image-compression");
+          const out = await imageCompression(file, {
+            maxSizeMB: 1.2, maxWidthOrHeight: 2000, useWebWorker: true, initialQuality: 0.8,
+            fileType: file.type === "image/png" ? "image/png" : "image/jpeg",
+          });
+          if (out.size < file.size) toUpload = out as File;
+        } catch {}
+      }
+      const ext = toUpload.type === "image/png" ? "png" : "jpg";
       const path = `${crypto.randomUUID()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("media").upload(path, file, {
-        cacheControl: "31536000", contentType: file.type, upsert: false,
+      const { error: upErr } = await supabase.storage.from("media").upload(path, toUpload, {
+        cacheControl: "31536000", contentType: toUpload.type, upsert: false,
       });
       if (upErr) throw upErr;
+
       const { data, error } = await supabase.storage.from("media").createSignedUrl(path, TEN_YEARS);
       if (error) throw error;
       onChange(data.signedUrl);
