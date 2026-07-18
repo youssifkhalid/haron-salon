@@ -32,7 +32,10 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: (redirect as any) || "/account" });
+      if (data.session) {
+        const safe = typeof redirect === "string" && redirect.startsWith("/") ? redirect : "/account";
+        navigate({ to: safe as any });
+      }
     });
   }, [navigate, redirect]);
 
