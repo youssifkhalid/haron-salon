@@ -186,6 +186,7 @@ function BookingPage() {
       notes: notes.trim() || null,
       price_egp: totalPrice,
       status,
+      reference_portfolio_item_id: search.ref || null,
     }).select("id").single();
     if (error || !data) { toast.error("تعذّر إنشاء الحجز: " + (error?.message ?? "")); return null; }
 
