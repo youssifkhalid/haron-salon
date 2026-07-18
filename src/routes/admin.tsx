@@ -54,6 +54,7 @@ const nav: { key: Section; label: string; icon: any; group: string }[] = [
   { key: "banners", label: "البانرات", icon: Megaphone, group: "المحتوى" },
   { key: "pages", label: "صفحات المحتوى", icon: FileText, group: "المحتوى" },
   { key: "notifications", label: "قوالب الإشعارات", icon: Bell, group: "المحتوى" },
+  { key: "qrcodes", label: "أكواد QR", icon: ClipboardList, group: "المحتوى" },
   { key: "permissions", label: "الصلاحيات", icon: ShieldCheck, group: "النظام" },
   { key: "audit", label: "سجل التدقيق", icon: ShieldCheck, group: "النظام" },
   { key: "backup", label: "النسخ الاحتياطي", icon: Database, group: "النظام" },
