@@ -14,6 +14,7 @@ export const Route = createFileRoute("/account")({
 });
 
 const statusLabel: Record<string, { label: string; cls: string }> = {
+  pending_payment: { label: "بانتظار مراجعة الدفع", cls: "bg-amber-500/10 text-amber-300 border-amber-500/30" },
   pending: { label: "بانتظار التأكيد", cls: "bg-amber-500/10 text-amber-300 border-amber-500/30" },
   confirmed: { label: "مؤكد", cls: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" },
   completed: { label: "مكتمل", cls: "bg-blue-500/10 text-blue-300 border-blue-500/30" },
