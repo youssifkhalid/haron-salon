@@ -64,7 +64,7 @@ function BookingPage() {
 
   const [step, setStep] = useState(1);
   const [serviceIds, setServiceIds] = useState<string[]>(search.service ? [search.service] : []);
-  const [barberId, setBarberId] = useState<string>("");
+  const [barberId, setBarberId] = useState<string>(search.barber ?? "");
   const [date, setDate] = useState<string>(todayStr);
   const [time, setTime] = useState<string>("");
   const [name, setName] = useState("");
@@ -77,6 +77,21 @@ function BookingPage() {
   const [methodId, setMethodId] = useState<string>("");
   const [senderPhone, setSenderPhone] = useState("");
   const [proofUrl, setProofUrl] = useState<string>("");
+
+  // Reference portfolio item (from "احجز مثل هذا")
+  const { data: referenceItem } = useQuery({
+    queryKey: ["ref-portfolio-item", search.ref],
+    enabled: !!search.ref,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("barber_portfolio_items")
+        .select("id, caption, media_url, thumbnail_url, media_type, media:barber_portfolio_media(media_url, thumbnail_url, media_type, sort_order)")
+        .eq("id", search.ref!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const selectedServices = useMemo(
     () => services.filter((s: Service) => serviceIds.includes(s.id)),
@@ -105,6 +120,37 @@ function BookingPage() {
     })();
     return () => { alive = false; };
   }, [date, barberId]);
+
+  // Working-hours filter: only when a specific barber is picked.
+  const selectedBarberFull = barbers.find((b: Barber) => b.id === barberId) as any;
+  const dayKeyOfDate = useMemo(() => {
+    if (!date) return null;
+    const d = new Date(date + "T00:00:00");
+    return ["sun","mon","tue","wed","thu","fri","sat"][d.getDay()];
+  }, [date]);
+  const barberDayRange = useMemo(() => {
+    if (!barberId || !selectedBarberFull?.working_hours || !dayKeyOfDate) return null;
+    const raw = (selectedBarberFull.working_hours as Record<string, string>)[dayKeyOfDate];
+    if (!raw) return null;
+    const m = raw.trim().match(/^([01]?\d|2[0-3]):([0-5]\d)\s*-\s*([01]?\d|2[0-3]):([0-5]\d)$/);
+    if (!m) return null;
+    const startMin = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+    const endMin = parseInt(m[3], 10) * 60 + parseInt(m[4], 10);
+    return { startMin, endMin };
+  }, [barberId, selectedBarberFull, dayKeyOfDate]);
+  const barberIsOffToday = !!(barberId && selectedBarberFull?.working_hours && dayKeyOfDate && !(selectedBarberFull.working_hours as Record<string, string>)[dayKeyOfDate]?.trim());
+  const availableTimes = useMemo(() => {
+    if (!barberId || !barberDayRange) return TIMES;
+    const dur = Math.max(1, totalDuration || 30);
+    return TIMES.filter((t) => {
+      const [hh, mm] = t.split(":").map((x) => parseInt(x, 10));
+      const mins = hh * 60 + mm;
+      return mins >= barberDayRange.startMin && (mins + dur) <= barberDayRange.endMin;
+    });
+  }, [barberId, barberDayRange, totalDuration]);
+
+  const dayLabelAr: Record<string, string> = { sat:"السبت", sun:"الأحد", mon:"الاثنين", tue:"الثلاثاء", wed:"الأربعاء", thu:"الخميس", fri:"الجمعة" };
+
 
   const steps = depositActive
     ? ["الخدمة", "الحلاق", "الموعد", "بياناتك", "الدفع"]
