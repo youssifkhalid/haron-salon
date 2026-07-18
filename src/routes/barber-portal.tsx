@@ -137,16 +137,19 @@ function ProfileTab({ barber, onSaved }: { barber: BarberFull; onSaved: () => vo
   const [cover, setCover] = useState(barber.cover_url ?? "");
   const [title, setTitle] = useState(barber.title ?? "");
   const [bio, setBio] = useState(barber.bio ?? "");
+  const [chair, setChair] = useState<string>(barber.chair_number != null ? String(barber.chair_number) : "");
   const [present, setPresent] = useState(barber.is_present_now);
   const [saving, setSaving] = useState(false);
 
   async function save() {
     setSaving(true);
+    const chairNum = chair.trim() ? Math.max(1, Math.min(99, parseInt(chair, 10) || 0)) : null;
     const { error } = await supabase.from("barbers").update({
       photo_url: photo || null,
       cover_url: cover || null,
       title: title.trim() || null,
       bio: bio.slice(0, MAX_BIO) || null,
+      chair_number: chairNum,
       is_present_now: present,
     }).eq("id", barber.id);
     setSaving(false);
@@ -173,9 +176,15 @@ function ProfileTab({ barber, onSaved }: { barber: BarberFull; onSaved: () => vo
           <Input value={barber.name} readOnly disabled className="mt-1 bg-muted/30" />
           <p className="mt-1 text-xs text-muted-foreground">الاسم يُعدَّل من قِبَل الإدارة فقط.</p>
         </div>
-        <div>
-          <Label>المسمى الوظيفي / التخصص</Label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="حلاق أول — تخصص لحية كلاسيك" className="mt-1" />
+        <div className="grid gap-4 sm:grid-cols-[1fr_140px]">
+          <div>
+            <Label>المسمى الوظيفي / التخصص</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="حلاق أول — تخصص لحية كلاسيك" className="mt-1" />
+          </div>
+          <div>
+            <Label>رقم الكرسي</Label>
+            <Input type="number" min={1} max={99} value={chair} onChange={(e) => setChair(e.target.value)} placeholder="١" className="mt-1" />
+          </div>
         </div>
         <div>
           <div className="flex items-center justify-between">
