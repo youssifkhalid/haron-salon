@@ -531,6 +531,20 @@ export function BookingPoliciesPanel() {
           <div><Label>الحد الأقصى للحجوزات اليومية لكل حلاق</Label><Input type="number" value={val.max_daily_per_barber ?? 0} onChange={(e) => setDraft({ ...draft, max_daily_per_barber: Number(e.target.value) })} /></div>
           <div><Label>نافذة الإلغاء (ساعات قبل الموعد)</Label><Input type="number" value={val.cancel_window_hours ?? 0} onChange={(e) => setDraft({ ...draft, cancel_window_hours: Number(e.target.value) })} /></div>
         </div>
+        <div className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+          <h4 className="mb-3 font-black text-amber-300">العربون (Deposit)</h4>
+          <div className="grid gap-3 sm:grid-cols-2 items-end">
+            <div className="flex items-center gap-2">
+              <Switch checked={!!val.deposit_required} onCheckedChange={(v) => setDraft({ ...draft, deposit_required: v })} />
+              <Label>طلب عربون قبل تأكيد الحجز</Label>
+            </div>
+            <div>
+              <Label>قيمة العربون (ج.م)</Label>
+              <Input type="number" min={0} value={val.deposit_amount_egp ?? 0} onChange={(e) => setDraft({ ...draft, deposit_amount_egp: Number(e.target.value) })} />
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">عند التفعيل: يظهر للعميل خطوة دفع إضافية مع وسائل الدفع المفعّلة، ويُنشأ الحجز بحالة "بانتظار الدفع" حتى تراجع الإدارة الإثبات.</p>
+        </div>
         <Button onClick={saveSettings} disabled={Object.keys(draft).length === 0} className="mt-4 bg-gold-gradient text-gold-foreground">حفظ القواعد</Button>
       </section>
 
