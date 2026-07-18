@@ -587,7 +587,7 @@ function BookingsTab({ barber }: { barber: BarberFull }) {
                 <div className="font-black text-gold" dir="ltr">{b.booking_time?.slice(0, 5)}</div>
               </div>
               {refCover && (
-                <a href={`/barbers/${barber.id}`} target="_blank" rel="noreferrer" title="الشكل المرجعي" className="relative shrink-0 h-14 w-14 rounded-xl overflow-hidden border border-gold/40">
+                <a href={`/barbers/${barber.id}?post=${refItem.id}`} target="_blank" rel="noreferrer" title="افتح البوست المرجعي" className="relative shrink-0 h-14 w-14 rounded-xl overflow-hidden border border-gold/40 hover:ring-2 hover:ring-gold">
                   <img src={refCover.thumbnail_url ?? refCover.media_url} className="h-full w-full object-cover" alt="مرجع" />
                   <div className="absolute inset-x-0 bottom-0 bg-gold text-gold-foreground text-[9px] font-black text-center py-0.5">مرجع</div>
                 </a>
