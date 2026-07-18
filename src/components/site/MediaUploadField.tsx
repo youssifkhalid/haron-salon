@@ -44,7 +44,7 @@ async function uploadOne(file: File): Promise<UploadedMedia> {
   return { url: data.signedUrl, type: isVideo ? "video" : "image" };
 }
 
-/** Uploads an image OR short video to the media bucket and returns a signed URL. Supports batch. */
+/** Uploads image(s) OR a short video and returns signed URLs. Supports batch + optimistic previews. */
 export function MediaUploadField({
   onUploaded,
   accept = "image/*,video/*",
@@ -71,7 +71,10 @@ export function MediaUploadField({
     setUploading(true);
     setProgress({ done: 0, total: files.length });
     let success = 0, fail = 0;
-    const chunk = 4; // parallel uploads for speed
+    // Fully-parallel uploads — Supabase storage handles concurrency well; the browser
+    // and server are the bottleneck, not us. For very large batches (>12) chunk to avoid
+    // opening too many sockets simultaneously.
+    const chunk = files.length > 12 ? 8 : files.length;
     for (let i = 0; i < files.length; i += chunk) {
       const slice = files.slice(i, i + chunk);
       const results = await Promise.allSettled(slice.map(uploadOne));
