@@ -176,9 +176,15 @@ function ProfileTab({ barber, onSaved }: { barber: BarberFull; onSaved: () => vo
           <Input value={barber.name} readOnly disabled className="mt-1 bg-muted/30" />
           <p className="mt-1 text-xs text-muted-foreground">الاسم يُعدَّل من قِبَل الإدارة فقط.</p>
         </div>
-        <div>
-          <Label>المسمى الوظيفي / التخصص</Label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="حلاق أول — تخصص لحية كلاسيك" className="mt-1" />
+        <div className="grid gap-4 sm:grid-cols-[1fr_140px]">
+          <div>
+            <Label>المسمى الوظيفي / التخصص</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="حلاق أول — تخصص لحية كلاسيك" className="mt-1" />
+          </div>
+          <div>
+            <Label>رقم الكرسي</Label>
+            <Input type="number" min={1} max={99} value={chair} onChange={(e) => setChair(e.target.value)} placeholder="١" className="mt-1" />
+          </div>
         </div>
         <div>
           <div className="flex items-center justify-between">
