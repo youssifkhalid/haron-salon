@@ -229,12 +229,23 @@ function BarberProfile() {
         </div>
       </div>
 
-      {lightbox && <Lightbox item={lightbox} barber={barber} onClose={() => setLightbox(null)} />}
+      {lightbox && (
+        <Lightbox
+          items={filtered}
+          startId={lightbox.id}
+          barber={barber}
+          onClose={() => setLightbox(null)}
+        />
+      )}
     </SiteLayout>
   );
 }
 
-function Lightbox({ item, barber, onClose }: { item: PortfolioItem; barber: BarberFull; onClose: () => void }) {
+function Lightbox({
+  items, startId, barber, onClose,
+}: { items: PortfolioItem[]; startId: string; barber: BarberFull; onClose: () => void }) {
+  const [postIdx, setPostIdx] = useState(() => Math.max(0, items.findIndex((x) => x.id === startId)));
+  const item = items[postIdx] ?? items[0];
   const media = item.media.length > 0 ? item.media : [{
     id: item.id, item_id: item.id, media_type: item.media_type,
     media_url: item.media_url, thumbnail_url: item.thumbnail_url, sort_order: 0, created_at: item.created_at,
@@ -242,20 +253,56 @@ function Lightbox({ item, barber, onClose }: { item: PortfolioItem; barber: Barb
   const [i, setI] = useState(0);
   const cur = media[i];
   const many = media.length > 1;
+  const isReel = item.media_type === "video";
+
+  // reset image index when switching posts
+  useEffect(() => { setI(0); }, [postIdx]);
+
+  const nextPost = () => setPostIdx((v) => Math.min(items.length - 1, v + 1));
+  const prevPost = () => setPostIdx((v) => Math.max(0, v - 1));
+  const nextImg = () => setI((v) => Math.min(media.length - 1, v + 1));
+  const prevImg = () => setI((v) => Math.max(0, v - 1));
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
-      if (e.key === "ArrowLeft") setI((v) => Math.min(media.length - 1, v + 1));
-      if (e.key === "ArrowRight") setI((v) => Math.max(0, v - 1));
+      // RTL: ArrowLeft = next, ArrowRight = prev
+      if (e.key === "ArrowLeft") nextImg();
+      if (e.key === "ArrowRight") prevImg();
+      if (e.key === "ArrowDown") nextPost();
+      if (e.key === "ArrowUp") prevPost();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [media.length, onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [media.length, items.length, onClose]);
+
+  // Touch swipe: horizontal → image carousel; vertical (reels) → next/prev reel
+  const touch = useMemo(() => ({ x: 0, y: 0, active: false }), []);
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0]; touch.x = t.clientX; touch.y = t.clientY; touch.active = true;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (!touch.active) return;
+    touch.active = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touch.x;
+    const dy = t.clientY - touch.y;
+    const absX = Math.abs(dx), absY = Math.abs(dy);
+    const TH = 40;
+    if (absX < TH && absY < TH) return;
+    if (absX > absY) {
+      // horizontal — RTL: swipe right (dx>0) = previous, swipe left = next
+      if (many) { if (dx < 0) nextImg(); else prevImg(); }
+    } else {
+      // vertical — for reels navigate between posts
+      if (isReel) { if (dy < 0) nextPost(); else prevPost(); }
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/95 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
-      <button className="absolute top-4 right-4 rounded-full bg-white/10 hover:bg-white/20 p-2 text-white" aria-label="إغلاق"><X className="h-6 w-6" /></button>
+      <button className="absolute top-4 right-4 rounded-full bg-white/10 hover:bg-white/20 p-2 text-white z-10" aria-label="إغلاق"><X className="h-6 w-6" /></button>
       <div className="max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-surface" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 border-b border-border p-3">
           <div className="h-9 w-9 rounded-full overflow-hidden bg-gold-gradient grid place-items-center text-sm font-black text-gold-foreground">
@@ -263,20 +310,44 @@ function Lightbox({ item, barber, onClose }: { item: PortfolioItem; barber: Barb
           </div>
           <div className="text-sm font-bold">{barber.name}</div>
           {many && <div className="mr-auto text-xs text-muted-foreground">{i + 1}/{media.length}</div>}
+          {isReel && items.length > 1 && (
+            <div className="mr-auto text-xs text-muted-foreground">ريلز {postIdx + 1}/{items.length}</div>
+          )}
         </div>
-        <div className="relative max-h-[70vh] bg-black grid place-items-center">
+        <div
+          className="relative max-h-[70vh] bg-black grid place-items-center touch-pan-y select-none"
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+        >
           {cur.media_type === "video"
-            ? <video src={cur.media_url} controls autoPlay className="max-h-[70vh] w-auto" />
-            : <img src={cur.media_url} alt={item.caption ?? ""} className="max-h-[70vh] w-auto object-contain" />}
+            ? <video key={cur.media_url} src={cur.media_url} controls autoPlay loop playsInline className="max-h-[70vh] w-auto" />
+            : <img src={cur.media_url} alt={item.caption ?? ""} className="max-h-[70vh] w-auto object-contain" draggable={false} />}
           {many && i > 0 && (
-            <button onClick={() => setI(i - 1)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 hover:bg-black/80 p-2 text-white" aria-label="السابق">
+            <button onClick={prevImg} className="hidden sm:block absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 hover:bg-black/80 p-2 text-white" aria-label="السابق">
               <ChevronRight className="h-5 w-5" />
             </button>
           )}
           {many && i < media.length - 1 && (
-            <button onClick={() => setI(i + 1)} className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 hover:bg-black/80 p-2 text-white" aria-label="التالي">
+            <button onClick={nextImg} className="hidden sm:block absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 hover:bg-black/80 p-2 text-white" aria-label="التالي">
               <ChevronLeft className="h-5 w-5" />
             </button>
+          )}
+          {isReel && items.length > 1 && (
+            <>
+              {postIdx > 0 && (
+                <button onClick={prevPost} className="hidden sm:block absolute top-2 left-1/2 -translate-x-1/2 rounded-full bg-black/60 hover:bg-black/80 p-2 text-white" aria-label="ريلز سابق">
+                  <ChevronLeft className="h-5 w-5 rotate-90" />
+                </button>
+              )}
+              {postIdx < items.length - 1 && (
+                <button onClick={nextPost} className="hidden sm:block absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/60 hover:bg-black/80 p-2 text-white" aria-label="ريلز تالي">
+                  <ChevronRight className="h-5 w-5 rotate-90" />
+                </button>
+              )}
+              <div className="sm:hidden absolute top-2 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-bold text-white/90 pointer-events-none">
+                اسحب للأعلى/الأسفل
+              </div>
+            </>
           )}
           {many && (
             <div className="absolute bottom-2 inset-x-0 flex justify-center gap-1.5 pointer-events-none">
