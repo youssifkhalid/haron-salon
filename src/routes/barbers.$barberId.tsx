@@ -202,14 +202,14 @@ function BarberProfile() {
                   {cover.media_type === "video" ? (
                     <>
                       {cover.thumbnail_url
-                        ? <img src={cover.thumbnail_url} alt="" className="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
+                        ? <img src={cover.thumbnail_url} alt="" className="h-full w-full object-cover transition duration-500 ease-out group-hover:scale-110" loading="lazy" />
                         : <video src={cover.media_url} className="h-full w-full object-cover" muted playsInline preload="metadata" />}
                       <div className="absolute top-1.5 left-1.5 rounded-full bg-black/60 p-1 text-white pointer-events-none">
                         <Play className="h-3 w-3 fill-white" />
                       </div>
                     </>
                   ) : (
-                    <img src={cover.media_url} alt={it.caption ?? ""} className="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
+                    <img src={cover.media_url} alt={it.caption ?? ""} className="h-full w-full object-cover transition duration-500 ease-out group-hover:scale-110" loading="lazy" />
                   )}
                   {count > 1 && (
                     <div className="absolute top-1.5 right-1.5 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] font-black text-white pointer-events-none">
