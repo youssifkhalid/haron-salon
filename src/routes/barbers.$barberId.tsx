@@ -85,8 +85,9 @@ function BarberProfile() {
           <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/40 to-transparent" />
         </div>
 
-        <div className="-mt-16 px-2 sm:px-6 animate-fade-in">
-          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-end gap-4 sm:flex sm:items-end sm:gap-5">
+        <div className="-mt-12 sm:-mt-16 px-2 sm:px-6 animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-5">
+
             <div className="relative shrink-0">
               <div className="absolute -inset-1 rounded-full bg-gold-gradient opacity-70 blur-md animate-pulse" />
               <div className="relative h-24 w-24 sm:h-36 sm:w-36 rounded-full overflow-hidden border-4 border-background bg-gold-gradient grid place-items-center text-5xl font-black text-gold-foreground shadow-gold ring-2 ring-gold/40">
