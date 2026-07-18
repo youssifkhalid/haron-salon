@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const TEN_YEARS = 60 * 60 * 24 * 365 * 10;
-const MAX_IMAGE_MB = 5;
-const MAX_VIDEO_MB = 50;
+const MAX_IMAGE_MB = 100;
+const MAX_VIDEO_MB = 500;
 
 export type UploadedMedia = { url: string; type: "image" | "video" };
 

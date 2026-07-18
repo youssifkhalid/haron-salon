@@ -121,7 +121,7 @@ export function ImageUploadField({
 
   async function upload(file: File) {
     if (!file.type.startsWith("image/")) { toast.error("الملف يجب أن يكون صورة"); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error("حجم الصورة أكبر من 5 ميجا"); return; }
+
     setUploading(true);
     try {
       const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
