@@ -348,13 +348,14 @@ export type Database = {
           customer_name: string
           customer_phone: string
           id: string
+          is_guest: boolean
           notes: string | null
           price_egp: number
           reference_portfolio_item_id: string | null
           service_id: string
           status: Database["public"]["Enums"]["booking_status"]
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           barber_id?: string | null
@@ -364,13 +365,14 @@ export type Database = {
           customer_name: string
           customer_phone: string
           id?: string
+          is_guest?: boolean
           notes?: string | null
           price_egp: number
           reference_portfolio_item_id?: string | null
           service_id: string
           status?: Database["public"]["Enums"]["booking_status"]
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           barber_id?: string | null
@@ -380,13 +382,14 @@ export type Database = {
           customer_name?: string
           customer_phone?: string
           id?: string
+          is_guest?: boolean
           notes?: string | null
           price_egp?: number
           reference_portfolio_item_id?: string | null
           service_id?: string
           status?: Database["public"]["Enums"]["booking_status"]
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -731,6 +734,7 @@ export type Database = {
           id: string
           instructions: string | null
           is_active: boolean
+          logo_url: string | null
           name: string
           provider: string | null
           sort_order: number
@@ -742,6 +746,7 @@ export type Database = {
           id?: string
           instructions?: string | null
           is_active?: boolean
+          logo_url?: string | null
           name: string
           provider?: string | null
           sort_order?: number
@@ -753,6 +758,7 @@ export type Database = {
           id?: string
           instructions?: string | null
           is_active?: boolean
+          logo_url?: string | null
           name?: string
           provider?: string | null
           sort_order?: number
@@ -1027,6 +1033,7 @@ export type Database = {
           duration_minutes: number
           icon: string | null
           id: string
+          image_url: string | null
           is_active: boolean
           name: string
           price_egp: number
@@ -1039,6 +1046,7 @@ export type Database = {
           duration_minutes: number
           icon?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           name: string
           price_egp: number
@@ -1051,6 +1059,7 @@ export type Database = {
           duration_minutes?: number
           icon?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           name?: string
           price_egp?: number
@@ -1088,7 +1097,9 @@ export type Database = {
           created_at: string
           description: string | null
           duration_days: number
+          features: Json | null
           id: string
+          image_url: string | null
           is_active: boolean
           name: string
           price_egp: number
@@ -1100,7 +1111,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration_days?: number
+          features?: Json | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           name: string
           price_egp: number
@@ -1112,7 +1125,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration_days?: number
+          features?: Json | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           name?: string
           price_egp?: number
@@ -1121,6 +1136,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      subscription_requests: {
+        Row: {
+          admin_note: string | null
+          amount_egp: number
+          created_at: string
+          id: string
+          plan_id: string
+          receipt_url: string
+          sender_phone: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          amount_egp: number
+          created_at?: string
+          id?: string
+          plan_id: string
+          receipt_url: string
+          sender_phone?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          amount_egp?: number
+          created_at?: string
+          id?: string
+          plan_id?: string
+          receipt_url?: string
+          sender_phone?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_requests_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
