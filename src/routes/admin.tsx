@@ -177,6 +177,67 @@ function AdminPage() {
   );
 }
 
+/* =============================== QR CODES =============================== */
+function QRCodesPanel() {
+  const { data: barbers = [] } = useQuery(allBarbersQuery());
+  const [origin, setOrigin] = useState("");
+  useEffect(() => { setOrigin(window.location.origin); }, []);
+  const items = useMemo(() => {
+    const list: { label: string; url: string; sub?: string }[] = [
+      { label: "الموقع الرئيسي", url: `${origin}/`, sub: "الصفحة الرئيسية" },
+      { label: "حجز سريع (بدون تسجيل)", url: `${origin}/booking?guest=1`, sub: "امسح واحجز فوراً" },
+      { label: "الاشتراكات", url: `${origin}/subscriptions`, sub: "عرض الباقات" },
+    ];
+    for (const b of barbers) list.push({ label: b.name, url: `${origin}/barbers/${b.id}`, sub: `كرسي ${b.chair_number ?? "—"}` });
+    return list;
+  }, [barbers, origin]);
+
+  async function download(url: string, filename: string) {
+    const { default: QR } = await import("qrcode");
+    const dataUrl = await QR.toDataURL(url, { width: 800, margin: 2, color: { dark: "#0F0F10", light: "#FFFFFF" } });
+    const a = document.createElement("a");
+    a.href = dataUrl; a.download = `${filename}.png`;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-gold/10 bg-card p-4">
+        <h3 className="font-display text-lg font-black">أكواد QR جاهزة</h3>
+        <p className="mt-1 text-xs text-muted-foreground">اضغط تنزيل لحفظ صورة الـ QR واطبعها للعرض في المحل.</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((it) => (
+          <div key={it.url} className="rounded-2xl border border-gold/10 bg-card p-4 animate-fade-in">
+            <QRPreview url={it.url} />
+            <div className="mt-3">
+              <div className="font-bold">{it.label}</div>
+              {it.sub && <div className="text-xs text-muted-foreground">{it.sub}</div>}
+              <div className="mt-1 truncate rounded bg-surface-elevated px-2 py-1 text-[10px] font-mono text-muted-foreground" dir="ltr">{it.url}</div>
+            </div>
+            <div className="mt-3 flex gap-2">
+              <Button size="sm" className="flex-1 bg-gold-gradient text-gold-foreground" onClick={() => download(it.url, it.label)}>تنزيل PNG</Button>
+              <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(it.url); toast.success("نُسخ الرابط"); }}>نسخ</Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function QRPreview({ url }: { url: string }) {
+  const [dataUrl, setDataUrl] = useState<string>("");
+  useEffect(() => {
+    let alive = true;
+    import("qrcode").then(({ default: QR }) =>
+      QR.toDataURL(url, { width: 400, margin: 2, color: { dark: "#0F0F10", light: "#FFFFFF" } })
+    ).then((u) => { if (alive) setDataUrl(u); });
+    return () => { alive = false; };
+  }, [url]);
+  return <div className="aspect-square rounded-xl bg-white p-3 grid place-items-center">{dataUrl ? <img src={dataUrl} alt="QR" className="h-full w-full object-contain" /> : <div className="text-xs text-muted-foreground">...</div>}</div>;
+}
+
 /* =============================== OVERVIEW =============================== */
 function OverviewPanel() {
   const { data: bookings = [] } = useQuery(allBookingsQuery());
