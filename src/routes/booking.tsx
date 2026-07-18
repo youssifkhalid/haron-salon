@@ -212,8 +212,9 @@ function BookingPage() {
     if (!id) return;
     toast.success("تم حجز موعدك! سنتواصل معك للتأكيد.");
     qc.invalidateQueries({ queryKey: ["bookings"] });
-    navigate({ to: "/account" });
+    navigate({ to: user ? "/account" : "/" });
   }
+
 
   async function submitWithDeposit() {
     const isGuest = !user && (!!search.guest);
