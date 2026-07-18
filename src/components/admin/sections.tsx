@@ -194,18 +194,52 @@ export function ExpensesPanel() {
 /* ============ SUBSCRIPTION PLANS ============ */
 const planFields: Field[] = [
   { name: "name", label: "الاسم", required: true },
+  { name: "image_url", label: "صورة الباقة (اختياري)", type: "image" },
   { name: "description", label: "الوصف", type: "textarea" },
   { name: "price_egp", label: "السعر (ج.م)", type: "number", required: true },
   { name: "sessions_included", label: "عدد الجلسات", type: "number", required: true },
   { name: "duration_days", label: "المدة (أيام)", type: "number", required: true },
+  { name: "features_text", label: "المميزات (سطر لكل ميزة)", type: "textarea", placeholder: "قص شعر مجاني\nحلاقة لحية مجانية\nتخفيض 20%" },
   { name: "sort_order", label: "الترتيب", type: "number" },
   { name: "is_active", label: "مفعّل", type: "boolean" },
 ];
 export function SubscriptionPlansPanel() {
   const { data: plans = [] } = useQuery(subscriptionPlansQuery());
   const { data: subs = [] } = useQuery(customerSubsQuery());
+  const { data: requests = [] } = useQuery({
+    queryKey: ["subscription_requests"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from as any)("subscription_requests")
+        .select("*, subscription_plans(name,price_egp), profiles(full_name,phone)")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
   const crud = useCrud("subscription_plans", "subscription_plans");
+  const qc = useQueryClient();
   const [dialog, setDialog] = useState<{ open: boolean; editing?: any }>({ open: false });
+  const [viewReceipt, setViewReceipt] = useState<any | null>(null);
+
+  async function reviewRequest(req: any, status: "approved" | "rejected") {
+    const { error } = await (supabase.from as any)("subscription_requests").update({ status }).eq("id", req.id);
+    if (error) { toast.error(error.message); return; }
+    if (status === "approved") {
+      const plan = req.subscription_plans;
+      const starts = new Date().toISOString().slice(0, 10);
+      const ends = new Date(Date.now() + (plan?.duration_days ?? 30) * 86400000).toISOString().slice(0, 10);
+      await supabase.from("customer_subscriptions").insert({
+        user_id: req.user_id, plan_id: req.plan_id, starts_on: starts, ends_on: ends, sessions_used: 0,
+      } as any);
+      toast.success("تم تفعيل الاشتراك");
+    } else {
+      toast.success("تم رفض الطلب");
+    }
+    qc.invalidateQueries({ queryKey: ["subscription_requests"] });
+    qc.invalidateQueries({ queryKey: ["customer_subscriptions"] });
+    setViewReceipt(null);
+  }
+
   return (
     <div className="space-y-6">
       <section>
@@ -215,21 +249,64 @@ export function SubscriptionPlansPanel() {
         </div>
         <div className="grid gap-3 md:grid-cols-3">
           {plans.map((p: any) => (
-            <div key={p.id} className={`rounded-2xl border p-4 ${p.is_active ? "border-gold/10 bg-card" : "border-border bg-muted/20 opacity-70"}`}>
-              <div className="font-bold">{p.name}</div>
-              <div className="mt-1 text-2xl font-black text-gold">{p.price_egp} ج.م</div>
-              <div className="mt-1 text-xs text-muted-foreground">{p.sessions_included} جلسة • {p.duration_days} يوم</div>
-              {p.description && <p className="mt-2 text-xs text-muted-foreground">{p.description}</p>}
-              <div className="mt-3 flex gap-1.5">
-                <button onClick={() => setDialog({ open: true, editing: p })} className="rounded-lg border border-border px-2.5 py-1 text-xs font-bold hover:bg-accent"><IconEdit /></button>
-                <button onClick={() => crud.toggle(p, "is_active")} className="rounded-lg border border-border px-2.5 py-1 text-xs font-bold hover:bg-accent">{p.is_active ? "تعطيل" : "تفعيل"}</button>
-                <ConfirmButton onConfirm={() => crud.del(p.id)}><IconDelete /></ConfirmButton>
+            <div key={p.id} className={`overflow-hidden rounded-2xl border ${p.is_active ? "border-gold/10 bg-card" : "border-border bg-muted/20 opacity-70"}`}>
+              {p.image_url && <div className="aspect-[16/9] overflow-hidden bg-muted"><img src={p.image_url} alt={p.name} loading="lazy" className="h-full w-full object-cover" /></div>}
+              <div className="p-4">
+                <div className="font-bold">{p.name}</div>
+                <div className="mt-1 text-2xl font-black text-gold">{p.price_egp} ج.م</div>
+                <div className="mt-1 text-xs text-muted-foreground">{p.sessions_included} جلسة • {p.duration_days} يوم</div>
+                {p.description && <p className="mt-2 text-xs text-muted-foreground">{p.description}</p>}
+                {Array.isArray(p.features) && p.features.length > 0 && (
+                  <ul className="mt-2 space-y-0.5">
+                    {p.features.map((f: string, i: number) => (
+                      <li key={i} className="flex items-start gap-1.5 text-xs"><Check className="h-3 w-3 mt-0.5 text-gold shrink-0" /><span>{f}</span></li>
+                    ))}
+                  </ul>
+                )}
+                <div className="mt-3 flex gap-1.5">
+                  <button onClick={() => setDialog({ open: true, editing: { ...p, features_text: Array.isArray(p.features) ? p.features.join("\n") : "" } })} className="rounded-lg border border-border px-2.5 py-1 text-xs font-bold hover:bg-accent"><IconEdit /></button>
+                  <button onClick={() => crud.toggle(p, "is_active")} className="rounded-lg border border-border px-2.5 py-1 text-xs font-bold hover:bg-accent">{p.is_active ? "تعطيل" : "تفعيل"}</button>
+                  <ConfirmButton onConfirm={() => crud.del(p.id)}><IconDelete /></ConfirmButton>
+                </div>
               </div>
             </div>
           ))}
           {plans.length === 0 && <div className="col-span-full p-8 text-center text-muted-foreground">لا توجد خطط بعد.</div>}
         </div>
       </section>
+
+      <section>
+        <h3 className="mb-3 font-display text-lg font-black">طلبات الاشتراك ({requests.filter((r: any) => r.status === "pending").length} معلق)</h3>
+        <div className="overflow-x-auto rounded-2xl border border-gold/10 bg-card">
+          <table className="w-full text-sm min-w-[800px]">
+            <thead className="bg-surface-elevated text-xs text-muted-foreground"><tr>
+              <th className="p-3 text-right">العميل</th><th className="p-3 text-right">الباقة</th>
+              <th className="p-3 text-right">المبلغ</th><th className="p-3 text-right">من رقم</th>
+              <th className="p-3 text-right">الحالة</th><th className="p-3 text-right">إجراء</th>
+            </tr></thead>
+            <tbody>
+              {requests.map((r: any) => (
+                <tr key={r.id} className="border-t border-border">
+                  <td className="p-3">{r.profiles?.full_name ?? "—"}<div className="text-xs text-muted-foreground">{r.profiles?.phone}</div></td>
+                  <td className="p-3">{r.subscription_plans?.name}</td>
+                  <td className="p-3 font-bold text-gold">{Number(r.amount_egp).toFixed(0)}</td>
+                  <td className="p-3 font-mono text-xs">{r.sender_phone ?? "—"}</td>
+                  <td className="p-3"><Badge variant="outline" className={r.status === "approved" ? "text-emerald-400" : r.status === "rejected" ? "text-destructive" : "text-amber-400"}>{r.status}</Badge></td>
+                  <td className="p-3 flex gap-1">
+                    <button onClick={() => setViewReceipt(r)} className="rounded border border-border px-2 py-1 text-xs hover:bg-accent"><Eye className="h-3 w-3" /></button>
+                    {r.status === "pending" && (<>
+                      <button onClick={() => reviewRequest(r, "approved")} className="rounded border border-emerald-500/40 px-2 py-1 text-xs text-emerald-400 hover:bg-emerald-500/10"><Check className="h-3 w-3" /></button>
+                      <button onClick={() => reviewRequest(r, "rejected")} className="rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10"><X className="h-3 w-3" /></button>
+                    </>)}
+                  </td>
+                </tr>
+              ))}
+              {requests.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">لا توجد طلبات.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <section>
         <h3 className="mb-3 font-display text-lg font-black">اشتراكات العملاء ({subs.length})</h3>
         <div className="overflow-hidden rounded-2xl border border-gold/10 bg-card">
@@ -253,12 +330,42 @@ export function SubscriptionPlansPanel() {
           </table>
         </div>
       </section>
+
+      {viewReceipt && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4 animate-fade-in" onClick={() => setViewReceipt(null)}>
+          <div className="w-full max-w-md rounded-2xl border border-gold/20 bg-card p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold">إيصال الاشتراك</h3>
+              <button onClick={() => setViewReceipt(null)} className="rounded p-1 hover:bg-accent"><X className="h-4 w-4" /></button>
+            </div>
+            <img src={viewReceipt.receipt_url} alt="receipt" className="w-full rounded-xl border border-border" />
+            <div className="text-sm">المبلغ: <b className="text-gold">{viewReceipt.amount_egp} ج.م</b> — من: <span className="font-mono">{viewReceipt.sender_phone ?? "—"}</span></div>
+            {viewReceipt.status === "pending" && (
+              <div className="flex gap-2">
+                <Button className="flex-1 bg-emerald-500 hover:bg-emerald-600" onClick={() => reviewRequest(viewReceipt, "approved")}><Check className="h-4 w-4 ml-1" /> موافقة</Button>
+                <Button variant="destructive" className="flex-1" onClick={() => reviewRequest(viewReceipt, "rejected")}><X className="h-4 w-4 ml-1" /> رفض</Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {dialog.open && (
         <EntityDialog open={dialog.open} onOpenChange={(v) => setDialog({ open: v })}
           title={dialog.editing ? "تعديل خطة" : "إضافة خطة"} fields={planFields}
           initial={dialog.editing ?? { is_active: true, duration_days: 30, sort_order: plans.length, sessions_included: 4 }}
           onSubmit={async (v: any) => {
-            await crud.save({ ...v, price_egp: Number(v.price_egp), sessions_included: Number(v.sessions_included), duration_days: Number(v.duration_days), sort_order: Number(v.sort_order || 0), description: v.description || null }, dialog.editing?.id);
+            const features = (v.features_text ?? "").split("\n").map((x: string) => x.trim()).filter(Boolean);
+            const { features_text, ...rest } = v;
+            await crud.save({
+              ...rest, price_egp: Number(v.price_egp),
+              sessions_included: Number(v.sessions_included),
+              duration_days: Number(v.duration_days),
+              sort_order: Number(v.sort_order || 0),
+              description: v.description || null,
+              image_url: v.image_url || null,
+              features,
+            }, dialog.editing?.id);
           }} />
       )}
     </div>
@@ -372,8 +479,9 @@ export function BannersPanel() {
 /* ============ PAYMENT METHODS ============ */
 const pmFields: Field[] = [
   { name: "name", label: "الاسم", required: true },
+  { name: "logo_url", label: "شعار الوسيلة (اختياري)", type: "image" },
   { name: "provider", label: "المزوّد", placeholder: "vodafone_cash / instapay / cash" },
-  { name: "account_info", label: "رقم التحويل / الحساب", placeholder: "مثال: 01001234567 (رقم فودافون كاش أو انستا باي) — رقم فقط بدون رابط" },
+  { name: "account_info", label: "رقم التحويل / الحساب", placeholder: "مثال: 01001234567 — رقم فقط بدون رابط" },
   { name: "instructions", label: "تعليمات للعميل", type: "textarea", placeholder: "مثال: حوّل المبلغ ثم ارفع صورة الإيصال" },
   { name: "sort_order", label: "الترتيب", type: "number" },
   { name: "is_active", label: "مفعّلة", type: "boolean" },
@@ -411,10 +519,17 @@ export function PaymentMethodsPanel() {
         <div className="grid gap-3 md:grid-cols-2">
           {rows.map((p: any) => (
             <div key={p.id} className={`rounded-2xl border p-4 ${p.is_active ? "border-gold/10 bg-card" : "border-border bg-muted/20 opacity-70"}`}>
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="font-bold">{p.name}</div>
-                  <div className="text-xs text-muted-foreground">{p.provider ?? "—"}</div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 min-w-0">
+                  {p.logo_url ? (
+                    <img src={p.logo_url} alt={p.name} className="h-12 w-12 rounded-lg object-cover border border-border shrink-0" />
+                  ) : (
+                    <div className="grid h-12 w-12 place-items-center rounded-lg bg-gold/10 text-gold shrink-0"><CreditCard className="h-5 w-5" /></div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="font-bold truncate">{p.name}</div>
+                    <div className="text-xs text-muted-foreground truncate">{p.provider ?? "—"}</div>
+                  </div>
                 </div>
                 <Switch checked={p.is_active} onCheckedChange={() => crud.toggle(p, "is_active")} />
               </div>
@@ -478,7 +593,7 @@ export function PaymentMethodsPanel() {
           title={dialog.editing ? "تعديل وسيلة دفع" : "إضافة وسيلة دفع"} fields={pmFields}
           initial={dialog.editing ?? { is_active: true, sort_order: rows.length }}
           onSubmit={async (v: any) => {
-            await crud.save({ ...v, sort_order: Number(v.sort_order || 0), account_info: v.account_info || null, instructions: v.instructions || null, provider: v.provider || null }, dialog.editing?.id);
+            await crud.save({ ...v, sort_order: Number(v.sort_order || 0), account_info: v.account_info || null, instructions: v.instructions || null, provider: v.provider || null, logo_url: v.logo_url || null }, dialog.editing?.id);
           }} />
       )}
     </div>

@@ -32,7 +32,7 @@ export const Route = createFileRoute("/admin")({
 type Section =
   | "overview" | "bookings" | "payments" | "policies" | "services" | "barbers" | "gallery" | "reviews"
   | "users" | "crm" | "promotions" | "subscriptions" | "pos" | "expenses" | "reports"
-  | "inbox" | "notifications" | "banners" | "pages" | "permissions" | "audit" | "backup" | "settings";
+  | "inbox" | "notifications" | "banners" | "pages" | "qrcodes" | "permissions" | "audit" | "backup" | "settings";
 
 const nav: { key: Section; label: string; icon: any; group: string }[] = [
   { key: "overview", label: "نظرة عامة", icon: LayoutDashboard, group: "الرئيسية" },
@@ -54,6 +54,7 @@ const nav: { key: Section; label: string; icon: any; group: string }[] = [
   { key: "banners", label: "البانرات", icon: Megaphone, group: "المحتوى" },
   { key: "pages", label: "صفحات المحتوى", icon: FileText, group: "المحتوى" },
   { key: "notifications", label: "قوالب الإشعارات", icon: Bell, group: "المحتوى" },
+  { key: "qrcodes", label: "أكواد QR", icon: ClipboardList, group: "المحتوى" },
   { key: "permissions", label: "الصلاحيات", icon: ShieldCheck, group: "النظام" },
   { key: "audit", label: "سجل التدقيق", icon: ShieldCheck, group: "النظام" },
   { key: "backup", label: "النسخ الاحتياطي", icon: Database, group: "النظام" },
@@ -165,6 +166,7 @@ function AdminPage() {
           {section === "banners" && <BannersPanel />}
           {section === "pages" && <ContentPagesPanel />}
           {section === "notifications" && <NotificationTemplatesPanel />}
+          {section === "qrcodes" && <QRCodesPanel />}
           {section === "permissions" && <PermissionsPanel />}
           {section === "audit" && <AuditLogPanel />}
           {section === "backup" && <BackupPanel />}
@@ -173,6 +175,67 @@ function AdminPage() {
       </div>
     </div>
   );
+}
+
+/* =============================== QR CODES =============================== */
+function QRCodesPanel() {
+  const { data: barbers = [] } = useQuery(allBarbersQuery());
+  const [origin, setOrigin] = useState("");
+  useEffect(() => { setOrigin(window.location.origin); }, []);
+  const items = useMemo(() => {
+    const list: { label: string; url: string; sub?: string }[] = [
+      { label: "الموقع الرئيسي", url: `${origin}/`, sub: "الصفحة الرئيسية" },
+      { label: "حجز سريع (بدون تسجيل)", url: `${origin}/booking?guest=1`, sub: "امسح واحجز فوراً" },
+      { label: "الاشتراكات", url: `${origin}/subscriptions`, sub: "عرض الباقات" },
+    ];
+    for (const b of barbers) list.push({ label: b.name, url: `${origin}/barbers/${b.id}`, sub: `كرسي ${b.chair_number ?? "—"}` });
+    return list;
+  }, [barbers, origin]);
+
+  async function download(url: string, filename: string) {
+    const { default: QR } = await import("qrcode");
+    const dataUrl = await QR.toDataURL(url, { width: 800, margin: 2, color: { dark: "#0F0F10", light: "#FFFFFF" } });
+    const a = document.createElement("a");
+    a.href = dataUrl; a.download = `${filename}.png`;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-gold/10 bg-card p-4">
+        <h3 className="font-display text-lg font-black">أكواد QR جاهزة</h3>
+        <p className="mt-1 text-xs text-muted-foreground">اضغط تنزيل لحفظ صورة الـ QR واطبعها للعرض في المحل.</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((it) => (
+          <div key={it.url} className="rounded-2xl border border-gold/10 bg-card p-4 animate-fade-in">
+            <QRPreview url={it.url} />
+            <div className="mt-3">
+              <div className="font-bold">{it.label}</div>
+              {it.sub && <div className="text-xs text-muted-foreground">{it.sub}</div>}
+              <div className="mt-1 truncate rounded bg-surface-elevated px-2 py-1 text-[10px] font-mono text-muted-foreground" dir="ltr">{it.url}</div>
+            </div>
+            <div className="mt-3 flex gap-2">
+              <Button size="sm" className="flex-1 bg-gold-gradient text-gold-foreground" onClick={() => download(it.url, it.label)}>تنزيل PNG</Button>
+              <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(it.url); toast.success("نُسخ الرابط"); }}>نسخ</Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function QRPreview({ url }: { url: string }) {
+  const [dataUrl, setDataUrl] = useState<string>("");
+  useEffect(() => {
+    let alive = true;
+    import("qrcode").then(({ default: QR }) =>
+      QR.toDataURL(url, { width: 400, margin: 2, color: { dark: "#0F0F10", light: "#FFFFFF" } })
+    ).then((u) => { if (alive) setDataUrl(u); });
+    return () => { alive = false; };
+  }, [url]);
+  return <div className="aspect-square rounded-xl bg-white p-3 grid place-items-center">{dataUrl ? <img src={dataUrl} alt="QR" className="h-full w-full object-contain" /> : <div className="text-xs text-muted-foreground">...</div>}</div>;
 }
 
 /* =============================== OVERVIEW =============================== */
@@ -437,7 +500,8 @@ const serviceFields: Field[] = [
   { name: "description", label: "الوصف", type: "textarea" },
   { name: "price_egp", label: "السعر (ج.م)", type: "number", required: true },
   { name: "duration_minutes", label: "المدة (دقائق)", type: "number", required: true },
-  { name: "icon", label: "الأيقونة (اسم رمز)", placeholder: "scissors" },
+  { name: "image_url", label: "صورة الخدمة (اختياري)", type: "image" },
+  { name: "icon", label: "الأيقونة (اختياري — اسم رمز)", placeholder: "scissors" },
   { name: "sort_order", label: "الترتيب", type: "number" },
   { name: "is_active", label: "مفعّلة", type: "boolean" },
 ];
@@ -476,24 +540,31 @@ function ServicesPanel() {
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {services.map((s: any) => (
-          <div key={s.id} className={`rounded-2xl border p-4 transition ${s.is_active ? "border-gold/10 bg-card" : "border-border bg-muted/20 opacity-70"}`}>
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <h3 className="font-bold truncate">{s.name}</h3>
-                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{s.description}</p>
+          <div key={s.id} className={`overflow-hidden rounded-2xl border transition ${s.is_active ? "border-gold/10 bg-card" : "border-border bg-muted/20 opacity-70"}`}>
+            {s.image_url && (
+              <div className="aspect-[16/9] overflow-hidden bg-muted">
+                <img src={s.image_url} alt={s.name} loading="lazy" className="h-full w-full object-cover" />
               </div>
-              <span className="shrink-0 font-black text-gold">{s.price_egp} ج.م</span>
-            </div>
-            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-              <span>⏱ {s.duration_minutes}د</span>
-              <span>#{s.sort_order}</span>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              <button onClick={() => setDialog({ open: true, editing: s })} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-bold hover:bg-accent"><IconEdit /> تعديل</button>
-              <button onClick={() => toggle(s)} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-bold hover:bg-accent">
-                {s.is_active ? <><EyeOff className="h-3.5 w-3.5" /> تعطيل</> : <><Eye className="h-3.5 w-3.5" /> تفعيل</>}
-              </button>
-              <ConfirmButton onConfirm={() => del(s.id)}><IconDelete /> حذف</ConfirmButton>
+            )}
+            <div className="p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-bold truncate">{s.name}</h3>
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{s.description}</p>
+                </div>
+                <span className="shrink-0 font-black text-gold">{s.price_egp} ج.م</span>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                <span>⏱ {s.duration_minutes}د</span>
+                <span>#{s.sort_order}</span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <button onClick={() => setDialog({ open: true, editing: s })} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-bold hover:bg-accent"><IconEdit /> تعديل</button>
+                <button onClick={() => toggle(s)} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-bold hover:bg-accent">
+                  {s.is_active ? <><EyeOff className="h-3.5 w-3.5" /> تعطيل</> : <><Eye className="h-3.5 w-3.5" /> تفعيل</>}
+                </button>
+                <ConfirmButton onConfirm={() => del(s.id)}><IconDelete /> حذف</ConfirmButton>
+              </div>
             </div>
           </div>
         ))}

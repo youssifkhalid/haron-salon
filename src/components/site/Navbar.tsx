@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Menu, X, User, LogOut, LayoutDashboard, Scissors } from "lucide-react";
 import { Logo } from "./Logo";
 import { useAuth, useRoles } from "@/lib/auth";
@@ -10,17 +11,30 @@ const links = [
   { to: "/", label: "الرئيسية" },
   { to: "/services", label: "الخدمات" },
   { to: "/barbers", label: "الحلاقين" },
+  { to: "/subscriptions", label: "الباقات" },
   { to: "/gallery", label: "المعرض" },
   { to: "/reviews", label: "الآراء" },
   { to: "/booking", label: "احجز" },
   { to: "/contact", label: "تواصل" },
 ];
 
+function useMyProfile(userId?: string) {
+  return useQuery({
+    queryKey: ["profile", "me", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id, full_name, avatar_url").eq("id", userId!).maybeSingle();
+      return data;
+    },
+  });
+}
+
 export function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { user } = useAuth();
   const { isAdmin, isBarber } = useRoles(user?.id);
+  const { data: profile } = useMyProfile(user?.id);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -65,8 +79,13 @@ export function Navbar() {
                   <Scissors className="h-4 w-4" /> بوابة الحلاق
                 </Link>
               )}
-              <Link to="/account" className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-accent inline-flex items-center gap-1.5">
-                <User className="h-4 w-4" /> حسابي
+              <Link to="/account" className="rounded-lg border border-border p-1 pl-3 pr-1 text-sm font-semibold hover:bg-accent inline-flex items-center gap-2">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt={profile.full_name ?? ""} className="h-7 w-7 rounded-full object-cover ring-1 ring-gold/40" />
+                ) : (
+                  <div className="grid h-7 w-7 place-items-center rounded-full bg-gold/10 text-gold"><User className="h-3.5 w-3.5" /></div>
+                )}
+                <span className="max-w-[100px] truncate">{profile?.full_name?.split(" ")[0] ?? "حسابي"}</span>
               </Link>
               <button onClick={signOut} className="rounded-lg px-3 py-2 text-sm text-muted-foreground hover:text-foreground" aria-label="تسجيل الخروج">
                 <LogOut className="h-4 w-4" />
