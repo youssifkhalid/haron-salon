@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
 import { z } from "zod";
@@ -168,7 +168,7 @@ function BookingPage() {
   }
 
   async function createBooking(status: "pending" | "pending_payment") {
-    const isGuest = !user && (!!search.guest);
+    const isGuest = !user;
     if (!user && !isGuest) {
       toast.error("سجّل دخولك أولاً");
       navigate({ to: "/auth", search: { redirect: "/booking" } });
@@ -178,7 +178,9 @@ function BookingPage() {
       toast.error("رجاءً أكمل كل الحقول"); return null;
     }
     const primary = selectedServices[0];
-    const { data, error } = await supabase.from("bookings").insert({
+    const bookingId = crypto.randomUUID();
+    const { error } = await supabase.from("bookings").insert({
+      id: bookingId,
       user_id: user?.id ?? null,
       is_guest: isGuest,
       service_id: primary.id,
@@ -191,17 +193,17 @@ function BookingPage() {
       price_egp: totalPrice,
       status,
       reference_portfolio_item_id: search.ref || null,
-    }).select("id").single();
-    if (error || !data) { toast.error("تعذّر إنشاء الحجز: " + (error?.message ?? "")); return null; }
+    });
+    if (error) { toast.error("تعذّر إنشاء الحجز: " + error.message); return null; }
 
     // Insert booking_services snapshot rows
     const rows = selectedServices.map((s) => ({
-      booking_id: data.id, service_id: s.id,
+      booking_id: bookingId, service_id: s.id,
       price_egp: s.price_egp, duration_minutes: s.duration_minutes,
     }));
     const { error: bsErr } = await supabase.from("booking_services").insert(rows);
     if (bsErr) console.warn("booking_services insert warning:", bsErr.message);
-    return data.id as string;
+    return bookingId;
   }
 
 
@@ -217,7 +219,7 @@ function BookingPage() {
 
 
   async function submitWithDeposit() {
-    const isGuest = !user && (!!search.guest);
+    const isGuest = !user;
     if (!user && !isGuest) { toast.error("سجّل دخولك أولاً"); return; }
     if (!methodId) { toast.error("اختر وسيلة دفع"); return; }
     if (!senderPhone.trim()) { toast.error("أدخل رقم الهاتف الذي حوّلت منه"); return; }
@@ -509,8 +511,7 @@ function BookingPage() {
 
               {!user && (
                 <div className="mt-4 rounded-xl border border-gold/40 bg-gold/5 p-4 text-sm">
-                  ستحتاج لتسجيل الدخول لتأكيد الحجز.{" "}
-                  <Link to="/auth" search={{ redirect: "/booking" }} className="font-bold text-gold underline">سجّل دخولك الآن</Link>
+                  يمكنك إتمام الحجز كضيف بدون تسجيل دخول. الحساب مطلوب فقط للمزايا والباقات وتتبع الحجوزات.
                 </div>
               )}
             </div>
@@ -594,6 +595,7 @@ function BookingPage() {
                     <MediaUploadField
                       accept="image/*"
                       aspect="aspect-video"
+                      folder="payment-proofs"
                       label="ارفع صورة سكرين شوت التحويل"
                       onUploaded={({ url }) => setProofUrl(url)}
                     />
