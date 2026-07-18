@@ -16,7 +16,11 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { MediaUploadField } from "@/components/site/MediaUploadField";
 
-const searchSchema = z.object({ service: z.string().optional() });
+const searchSchema = z.object({
+  service: z.string().optional(),
+  barber: z.string().optional(),
+  ref: z.string().optional(),
+});
 
 export const Route = createFileRoute("/booking")({
   validateSearch: searchSchema,
