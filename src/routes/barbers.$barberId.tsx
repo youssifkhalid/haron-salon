@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
-import { Star, Calendar, X, Play, Armchair, Clock, Grid3x3, Film, Heart, MessageCircle, Share2 } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Star, Calendar, X, Play, Armchair, Clock, Grid3x3, Film, Heart, MessageCircle, Share2, ChevronLeft, ChevronRight } from "lucide-react";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { barberPortfolioQuery, type PortfolioItem, type BarberFull } from "@/lib/queries-barber";
@@ -76,7 +76,6 @@ function BarberProfile() {
           <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/40 to-transparent" />
         </div>
 
-        {/* Header — Instagram-style */}
         <div className="-mt-16 px-2 sm:px-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5">
             <div className="h-28 w-28 sm:h-36 sm:w-36 rounded-full overflow-hidden border-4 border-background bg-gold-gradient grid place-items-center text-5xl font-black text-gold-foreground shadow-gold shrink-0">
@@ -109,7 +108,6 @@ function BarberProfile() {
                 )}
               </div>
 
-              {/* Stats */}
               <div className="mt-4 flex gap-6 text-sm">
                 <div><b className="text-base font-black">{posts}</b> <span className="text-muted-foreground">منشور</span></div>
                 <div><b className="text-base font-black">{reels}</b> <span className="text-muted-foreground">ريلز</span></div>
@@ -117,7 +115,6 @@ function BarberProfile() {
               </div>
             </div>
 
-            {/* Actions */}
             <div className="flex gap-2 pt-3 w-full sm:w-auto">
               <Link
                 to="/booking"
@@ -130,19 +127,16 @@ function BarberProfile() {
             </div>
           </div>
 
-          {/* Bio */}
           {barber.bio && (
             <p className="mt-5 text-sm leading-7 text-foreground/90 whitespace-pre-line max-w-2xl">
               {barber.bio}
             </p>
           )}
 
-          {/* Socials */}
           <div className="mt-4">
             <SocialLinks whatsapp={barber.whatsapp} instagram={barber.instagram} tiktok={barber.tiktok} facebook={barber.facebook} size="md" />
           </div>
 
-          {/* Working hours strip */}
           <div className="mt-6 rounded-2xl border border-gold/15 bg-card p-4">
             <div className="flex items-center gap-2 mb-3 text-sm font-bold">
               <Clock className="h-4 w-4 text-gold" /> مواعيد العمل
@@ -182,30 +176,44 @@ function BarberProfile() {
           </div>
         ) : (
           <div className="mt-4 grid grid-cols-3 gap-1 sm:gap-2">
-            {filtered.map((it) => (
-              <button
-                key={it.id}
-                onClick={() => setLightbox(it)}
-                className="group relative aspect-square overflow-hidden bg-black focus:outline-none focus:ring-2 focus:ring-gold/60"
-                aria-label={it.caption ?? "عرض"}
-              >
-                {it.media_type === "video" ? (
-                  <>
-                    {it.thumbnail_url
-                      ? <img src={it.thumbnail_url} alt="" className="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
-                      : <video src={it.media_url} className="h-full w-full object-cover" muted playsInline preload="metadata" />}
-                    <div className="absolute top-1.5 left-1.5 rounded-full bg-black/60 p-1 text-white pointer-events-none">
-                      <Play className="h-3 w-3 fill-white" />
+            {filtered.map((it) => {
+              const cover = it.media[0] ?? { media_type: it.media_type, media_url: it.media_url, thumbnail_url: it.thumbnail_url };
+              const count = it.media.length || 1;
+              return (
+                <button
+                  key={it.id}
+                  onClick={() => setLightbox(it)}
+                  className="group relative aspect-square overflow-hidden bg-black focus:outline-none focus:ring-2 focus:ring-gold/60"
+                  aria-label={it.caption ?? "عرض"}
+                >
+                  {cover.media_type === "video" ? (
+                    <>
+                      {cover.thumbnail_url
+                        ? <img src={cover.thumbnail_url} alt="" className="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
+                        : <video src={cover.media_url} className="h-full w-full object-cover" muted playsInline preload="metadata" />}
+                      <div className="absolute top-1.5 left-1.5 rounded-full bg-black/60 p-1 text-white pointer-events-none">
+                        <Play className="h-3 w-3 fill-white" />
+                      </div>
+                    </>
+                  ) : (
+                    <img src={cover.media_url} alt={it.caption ?? ""} className="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
+                  )}
+                  {count > 1 && (
+                    <div className="absolute top-1.5 right-1.5 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] font-black text-white pointer-events-none">
+                      1/{count}
                     </div>
-                  </>
-                ) : (
-                  <img src={it.media_url} alt={it.caption ?? ""} className="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
-                )}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition grid place-items-center opacity-0 group-hover:opacity-100 text-white text-xs font-bold">
-                  <Heart className="h-6 w-6 fill-white" />
-                </div>
-              </button>
-            ))}
+                  )}
+                  {it.is_pinned && (
+                    <div className="absolute bottom-1.5 right-1.5 rounded-full bg-gold px-1.5 py-0.5 text-[9px] font-black text-gold-foreground pointer-events-none">
+                      مثبّت
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition grid place-items-center opacity-0 group-hover:opacity-100 text-white text-xs font-bold">
+                    <Heart className="h-6 w-6 fill-white" />
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -221,41 +229,89 @@ function BarberProfile() {
         </div>
       </div>
 
-      {/* Lightbox — post-style */}
-      {lightbox && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/95 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setLightbox(null)}>
-          <button className="absolute top-4 right-4 rounded-full bg-white/10 hover:bg-white/20 p-2 text-white" aria-label="إغلاق"><X className="h-6 w-6" /></button>
-          <div className="max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-surface" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-3 border-b border-border p-3">
-              <div className="h-9 w-9 rounded-full overflow-hidden bg-gold-gradient grid place-items-center text-sm font-black text-gold-foreground">
-                {barber.photo_url ? <img src={barber.photo_url} className="h-full w-full object-cover" alt="" /> : barber.name.charAt(0)}
-              </div>
-              <div className="text-sm font-bold">{barber.name}</div>
+      {lightbox && <Lightbox item={lightbox} barber={barber} onClose={() => setLightbox(null)} />}
+    </SiteLayout>
+  );
+}
+
+function Lightbox({ item, barber, onClose }: { item: PortfolioItem; barber: BarberFull; onClose: () => void }) {
+  const media = item.media.length > 0 ? item.media : [{
+    id: item.id, item_id: item.id, media_type: item.media_type,
+    media_url: item.media_url, thumbnail_url: item.thumbnail_url, sort_order: 0, created_at: item.created_at,
+  }];
+  const [i, setI] = useState(0);
+  const cur = media[i];
+  const many = media.length > 1;
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") setI((v) => Math.min(media.length - 1, v + 1));
+      if (e.key === "ArrowRight") setI((v) => Math.max(0, v - 1));
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [media.length, onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/95 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
+      <button className="absolute top-4 right-4 rounded-full bg-white/10 hover:bg-white/20 p-2 text-white" aria-label="إغلاق"><X className="h-6 w-6" /></button>
+      <div className="max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-surface" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-3 border-b border-border p-3">
+          <div className="h-9 w-9 rounded-full overflow-hidden bg-gold-gradient grid place-items-center text-sm font-black text-gold-foreground">
+            {barber.photo_url ? <img src={barber.photo_url} className="h-full w-full object-cover" alt="" /> : barber.name.charAt(0)}
+          </div>
+          <div className="text-sm font-bold">{barber.name}</div>
+          {many && <div className="mr-auto text-xs text-muted-foreground">{i + 1}/{media.length}</div>}
+        </div>
+        <div className="relative max-h-[70vh] bg-black grid place-items-center">
+          {cur.media_type === "video"
+            ? <video src={cur.media_url} controls autoPlay className="max-h-[70vh] w-auto" />
+            : <img src={cur.media_url} alt={item.caption ?? ""} className="max-h-[70vh] w-auto object-contain" />}
+          {many && i > 0 && (
+            <button onClick={() => setI(i - 1)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 hover:bg-black/80 p-2 text-white" aria-label="السابق">
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          )}
+          {many && i < media.length - 1 && (
+            <button onClick={() => setI(i + 1)} className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 hover:bg-black/80 p-2 text-white" aria-label="التالي">
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+          )}
+          {many && (
+            <div className="absolute bottom-2 inset-x-0 flex justify-center gap-1.5 pointer-events-none">
+              {media.map((_, idx) => (
+                <span key={idx} className={`h-1.5 w-1.5 rounded-full ${idx === i ? "bg-white" : "bg-white/40"}`} />
+              ))}
             </div>
-            <div className="max-h-[70vh] bg-black grid place-items-center">
-              {lightbox.media_type === "video"
-                ? <video src={lightbox.media_url} controls autoPlay className="max-h-[70vh] w-auto" />
-                : <img src={lightbox.media_url} alt={lightbox.caption ?? ""} className="max-h-[70vh] w-auto object-contain" />}
-            </div>
-            <div className="p-4">
-              <div className="flex items-center gap-4 text-foreground/80">
-                <Heart className="h-6 w-6" />
-                <MessageCircle className="h-6 w-6" />
-                <Share2 className="h-6 w-6" />
-              </div>
-              {lightbox.caption && <p className="mt-3 text-sm leading-6">{lightbox.caption}</p>}
-              <Link
-                to="/booking"
-                search={{ barber: barber.id } as any}
-                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gold-gradient px-4 py-2 text-xs font-black text-gold-foreground shadow-gold"
-              >
-                <Calendar className="h-3.5 w-3.5" /> احجز مع {barber.name}
-              </Link>
-            </div>
+          )}
+        </div>
+        <div className="p-4">
+          <div className="flex items-center gap-4 text-foreground/80">
+            <Heart className="h-6 w-6" />
+            <MessageCircle className="h-6 w-6" />
+            <Share2 className="h-6 w-6" />
+          </div>
+          {item.caption && <p className="mt-3 text-sm leading-6">{item.caption}</p>}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              to="/booking"
+              search={{ barber: barber.id } as any}
+              className="inline-flex items-center gap-2 rounded-xl border border-gold/40 px-4 py-2 text-xs font-black text-gold hover:bg-gold/10"
+            >
+              <Calendar className="h-3.5 w-3.5" /> احجز مع {barber.name}
+            </Link>
+            <Link
+              to="/booking"
+              search={{ barber: barber.id, ref: item.id } as any}
+              className="inline-flex items-center gap-2 rounded-xl bg-gold-gradient px-4 py-2 text-xs font-black text-gold-foreground shadow-gold"
+            >
+              <Calendar className="h-3.5 w-3.5" /> احجز مثل هذا
+            </Link>
           </div>
         </div>
-      )}
-    </SiteLayout>
+      </div>
+    </div>
   );
 }
 

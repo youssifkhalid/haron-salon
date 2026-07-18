@@ -288,36 +288,85 @@ function SocialTab({ barber, onSaved }: { barber: BarberFull; onSaved: () => voi
 }
 
 /* ==================== PORTFOLIO TAB ==================== */
+import { Pin, PinOff, ChevronLeft as ChevLeft, ChevronRight as ChevRight } from "lucide-react";
+
+type NewMedia = { url: string; type: "image" | "video"; thumbnail_url?: string | null };
+
 function PortfolioTab({ barber }: { barber: BarberFull }) {
   const qc = useQueryClient();
   const { data: items = [] } = useQuery(barberPortfolioQuery(barber.id));
   const [caption, setCaption] = useState("");
-  const [pendingUrl, setPendingUrl] = useState<{ url: string; type: "image" | "video" } | null>(null);
+  const [drafts, setDrafts] = useState<NewMedia[]>([]);
   const [saving, setSaving] = useState(false);
 
-  async function saveNewItem(media: { url: string; type: "image" | "video" }) {
-    setPendingUrl(media);
+  // Draft type: derived from first uploaded media (video = single, image = carousel).
+  const draftType = drafts[0]?.type ?? null;
+  const canAddMore = draftType !== "video";
+
+  async function onUploaded(media: NewMedia) {
+    if (drafts.length === 0) {
+      setDrafts([media]);
+      return;
+    }
+    if (draftType === "video") {
+      toast.error("لا يمكن دمج فيديو مع محتوى آخر — احذف الفيديو أولاً.");
+      return;
+    }
+    if (media.type === "video") {
+      toast.error("لا يمكن إضافة فيديو إلى بوست فيه صور — أنشئ بوستًا جديدًا للفيديو.");
+      return;
+    }
+    setDrafts((cur) => [...cur, media]);
   }
+
+  function moveDraft(idx: number, dir: -1 | 1) {
+    setDrafts((cur) => {
+      const j = idx + dir;
+      if (j < 0 || j >= cur.length) return cur;
+      const c = cur.slice();
+      [c[idx], c[j]] = [c[j], c[idx]];
+      return c;
+    });
+  }
+  function removeDraft(idx: number) {
+    setDrafts((cur) => cur.filter((_, i) => i !== idx));
+  }
+
   async function commit() {
-    if (!pendingUrl) return;
+    if (drafts.length === 0) return;
     setSaving(true);
     const nextOrder = (items[items.length - 1]?.sort_order ?? -1) + 1;
-    const { error } = await supabase.from("barber_portfolio_items").insert({
-      barber_id: barber.id,
-      media_type: pendingUrl.type,
-      media_url: pendingUrl.url,
-      caption: caption.trim() || null,
-      sort_order: nextOrder,
-    });
+    const first = drafts[0];
+    const { data: parent, error: pErr } = await supabase
+      .from("barber_portfolio_items")
+      .insert({
+        barber_id: barber.id,
+        media_type: first.type,
+        media_url: first.url,
+        thumbnail_url: first.thumbnail_url ?? null,
+        caption: caption.trim() || null,
+        sort_order: nextOrder,
+      })
+      .select("id")
+      .single();
+    if (pErr || !parent) { setSaving(false); toast.error(pErr?.message ?? "خطأ"); return; }
+    const rows = drafts.map((m, i) => ({
+      item_id: parent.id,
+      media_type: m.type,
+      media_url: m.url,
+      thumbnail_url: m.thumbnail_url ?? null,
+      sort_order: i,
+    }));
+    const { error: mErr } = await supabase.from("barber_portfolio_media").insert(rows);
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("تمت الإضافة لمعرض أعمالك");
-    setCaption(""); setPendingUrl(null);
+    if (mErr) { toast.error(mErr.message); return; }
+    toast.success("تم نشر البوست");
+    setCaption(""); setDrafts([]);
     qc.invalidateQueries({ queryKey: ["barber-portfolio", barber.id] });
   }
 
   async function del(id: string) {
-    if (!confirm("حذف هذا العنصر من المعرض؟")) return;
+    if (!confirm("حذف هذا البوست بالكامل؟")) return;
     const { error } = await supabase.from("barber_portfolio_items").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("تم الحذف");
@@ -329,7 +378,6 @@ function PortfolioTab({ barber }: { barber: BarberFull }) {
     if (j < 0 || j >= items.length) return;
     const a = items[idx], b = items[j];
     const [oa, ob] = [a.sort_order, b.sort_order];
-    // ensure different values
     const newA = ob, newB = oa === ob ? oa + dir : oa;
     await Promise.all([
       supabase.from("barber_portfolio_items").update({ sort_order: newA }).eq("id", a.id),
@@ -343,28 +391,58 @@ function PortfolioTab({ barber }: { barber: BarberFull }) {
     qc.invalidateQueries({ queryKey: ["barber-portfolio", barber.id] });
   }
 
+  async function togglePin(item: PortfolioItem) {
+    const { error } = await supabase
+      .from("barber_portfolio_items")
+      .update({ is_pinned: !item.is_pinned })
+      .eq("id", item.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(!item.is_pinned ? "تم التثبيت في الأعلى" : "تم إلغاء التثبيت");
+    qc.invalidateQueries({ queryKey: ["barber-portfolio", barber.id] });
+  }
+
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-gold/10 bg-card p-5">
-        <div className="text-sm font-bold mb-3">إضافة عمل جديد (صورة أو فيديو ريلز)</div>
-        {!pendingUrl ? (
-          <MediaUploadField onUploaded={saveNewItem} aspect="aspect-video" label="اختر صورة أو فيديو من جهازك" />
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-[200px_1fr]">
-            <div className="rounded-xl overflow-hidden border border-gold/20 aspect-square">
-              {pendingUrl.type === "video"
-                ? <video src={pendingUrl.url} className="h-full w-full object-cover" muted playsInline />
-                : <img src={pendingUrl.url} alt="" className="h-full w-full object-cover" />}
-            </div>
-            <div className="space-y-2">
-              <Label>وصف/كابشن (اختياري)</Label>
-              <Textarea value={caption} onChange={(e) => setCaption(e.target.value.slice(0, 140))} rows={3} placeholder="مثال: قصة فيد عصرية بتشكيل لحية" />
-              <div className="flex gap-2">
-                <Button onClick={commit} disabled={saving} className="bg-gold-gradient text-gold-foreground shadow-gold hover:brightness-110">
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "إضافة للمعرض"}
-                </Button>
-                <Button variant="outline" onClick={() => { setPendingUrl(null); setCaption(""); }}>إلغاء</Button>
+        <div className="text-sm font-bold mb-3">
+          إضافة بوست جديد {draftType === "video" ? "(فيديو ريلز)" : draftType === "image" ? `(كاروسيل — ${drafts.length} صورة)` : "(صورة/صور أو فيديو)"}
+        </div>
+
+        {drafts.length > 0 && (
+          <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
+            {drafts.map((m, i) => (
+              <div key={i} className="relative shrink-0 w-24 h-24 rounded-xl overflow-hidden border border-gold/20 bg-black">
+                {m.type === "video"
+                  ? <video src={m.url} className="h-full w-full object-cover" muted playsInline />
+                  : <img src={m.url} className="h-full w-full object-cover" alt="" />}
+                <button onClick={() => removeDraft(i)} className="absolute top-1 left-1 rounded-full bg-destructive/90 p-1 text-destructive-foreground" aria-label="حذف">
+                  <Trash2 className="h-3 w-3" />
+                </button>
+                <div className="absolute bottom-1 right-1 flex gap-0.5">
+                  <button onClick={() => moveDraft(i, -1)} disabled={i === 0} className="rounded bg-black/60 p-1 text-white disabled:opacity-30" aria-label="لليمين"><ArrowUp className="h-3 w-3 rotate-90" /></button>
+                  <button onClick={() => moveDraft(i, 1)} disabled={i === drafts.length - 1} className="rounded bg-black/60 p-1 text-white disabled:opacity-30" aria-label="لليسار"><ArrowDown className="h-3 w-3 rotate-90" /></button>
+                </div>
+                {i === 0 && <div className="absolute top-1 right-1 rounded-full bg-gold px-1.5 text-[9px] font-black text-gold-foreground">1</div>}
               </div>
+            ))}
+          </div>
+        )}
+
+        {canAddMore && (
+          <MediaUploadField onUploaded={onUploaded} aspect="aspect-video"
+            label={drafts.length === 0 ? "اختر صورة/فيديو من جهازك" : "أضف صورة أخرى"}
+            accept={draftType === "image" ? "image/*" : "image/*,video/*"} />
+        )}
+
+        {drafts.length > 0 && (
+          <div className="mt-4 space-y-2">
+            <Label>وصف/كابشن (اختياري)</Label>
+            <Textarea value={caption} onChange={(e) => setCaption(e.target.value.slice(0, 200))} rows={3} placeholder="مثال: قصة فيد عصرية بتشكيل لحية" />
+            <div className="flex gap-2">
+              <Button onClick={commit} disabled={saving} className="bg-gold-gradient text-gold-foreground shadow-gold hover:brightness-110">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "نشر البوست"}
+              </Button>
+              <Button variant="outline" onClick={() => { setDrafts([]); setCaption(""); }}>إلغاء</Button>
             </div>
           </div>
         )}
@@ -374,43 +452,55 @@ function PortfolioTab({ barber }: { barber: BarberFull }) {
         <div className="rounded-3xl border-2 border-dashed border-gold/20 bg-gold/5 p-12 text-center">
           <ImageIcon className="mx-auto h-12 w-12 text-gold/60" />
           <h3 className="mt-4 font-display text-xl font-black">ابدأ ببناء معرض أعمالك الأول!</h3>
-          <p className="mt-2 text-sm text-muted-foreground">ارفع أول صورة أو فيديو الآن — كل عمل بيقربك من عميل جديد.</p>
+          <p className="mt-2 text-sm text-muted-foreground">ارفع أول بوست الآن — كل عمل بيقربك من عميل جديد.</p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((it, idx) => <PortfolioCard key={it.id} item={it} idx={idx} total={items.length}
-            onDelete={() => del(it.id)} onMove={(d) => move(idx, d)} onCaption={(c) => updateCaption(it.id, c)} />)}
+            onDelete={() => del(it.id)} onMove={(d) => move(idx, d)} onCaption={(c) => updateCaption(it.id, c)}
+            onTogglePin={() => togglePin(it)} />)}
         </div>
       )}
     </div>
   );
 }
 
-function PortfolioCard({ item, idx, total, onDelete, onMove, onCaption }: {
+function PortfolioCard({ item, idx, total, onDelete, onMove, onCaption, onTogglePin }: {
   item: PortfolioItem; idx: number; total: number;
-  onDelete: () => void; onMove: (d: -1 | 1) => void; onCaption: (c: string) => void;
+  onDelete: () => void; onMove: (d: -1 | 1) => void; onCaption: (c: string) => void; onTogglePin: () => void;
 }) {
   const [cap, setCap] = useState(item.caption ?? "");
   const [editing, setEditing] = useState(false);
+  const cover = item.media[0] ?? { media_type: item.media_type, media_url: item.media_url, thumbnail_url: item.thumbnail_url };
+  const count = item.media.length || 1;
   return (
-    <div className="rounded-2xl overflow-hidden border border-gold/10 bg-card group">
+    <div className="rounded-2xl overflow-hidden border border-gold/10 bg-card group relative">
+      {item.is_pinned && (
+        <div className="absolute top-2 right-2 z-10 inline-flex items-center gap-1 rounded-full bg-gold px-2 py-0.5 text-[10px] font-black text-gold-foreground shadow-gold">
+          <Pin className="h-3 w-3" /> مثبّت
+        </div>
+      )}
       <div className="relative aspect-square bg-black">
-        {item.media_type === "video" ? (
+        {cover.media_type === "video" ? (
           <>
-            <video src={item.media_url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+            {cover.thumbnail_url
+              ? <img src={cover.thumbnail_url} alt="" className="h-full w-full object-cover" />
+              : <video src={cover.media_url} className="h-full w-full object-cover" muted playsInline preload="metadata" />}
             <div className="absolute inset-0 grid place-items-center bg-black/30 pointer-events-none">
               <Play className="h-10 w-10 text-white fill-white/80" />
             </div>
           </>
         ) : (
-          <img src={item.media_url} alt={item.caption ?? ""} className="h-full w-full object-cover" loading="lazy" />
+          <img src={cover.media_url} alt={item.caption ?? ""} className="h-full w-full object-cover" loading="lazy" />
         )}
-        <Badge className="absolute top-2 right-2 bg-black/70 backdrop-blur border-0">{item.media_type === "video" ? "فيديو" : "صورة"}</Badge>
+        <Badge className="absolute top-2 left-2 bg-black/70 backdrop-blur border-0">
+          {count > 1 ? `1/${count}` : cover.media_type === "video" ? "فيديو" : "صورة"}
+        </Badge>
       </div>
       <div className="p-3 space-y-2">
         {editing ? (
           <>
-            <Textarea value={cap} onChange={(e) => setCap(e.target.value.slice(0, 140))} rows={2} className="text-xs" />
+            <Textarea value={cap} onChange={(e) => setCap(e.target.value.slice(0, 200))} rows={2} className="text-xs" />
             <div className="flex gap-1.5">
               <Button size="sm" onClick={() => { onCaption(cap); setEditing(false); }}>حفظ</Button>
               <Button size="sm" variant="outline" onClick={() => { setCap(item.caption ?? ""); setEditing(false); }}>إلغاء</Button>
@@ -425,6 +515,9 @@ function PortfolioCard({ item, idx, total, onDelete, onMove, onCaption }: {
           <div className="flex gap-1">
             <button onClick={() => onMove(-1)} disabled={idx === 0} className="rounded p-1.5 hover:bg-accent disabled:opacity-30" aria-label="لأعلى"><ArrowUp className="h-3.5 w-3.5" /></button>
             <button onClick={() => onMove(1)} disabled={idx === total - 1} className="rounded p-1.5 hover:bg-accent disabled:opacity-30" aria-label="لأسفل"><ArrowDown className="h-3.5 w-3.5" /></button>
+            <button onClick={onTogglePin} className={`rounded p-1.5 hover:bg-accent ${item.is_pinned ? "text-gold" : ""}`} aria-label={item.is_pinned ? "إلغاء التثبيت" : "تثبيت"}>
+              {item.is_pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+            </button>
           </div>
           <button onClick={onDelete} className="rounded p-1.5 text-destructive hover:bg-destructive/10" aria-label="حذف"><Trash2 className="h-3.5 w-3.5" /></button>
         </div>
@@ -484,12 +577,21 @@ function BookingsTab({ barber }: { barber: BarberFull }) {
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-muted-foreground">لا توجد حجوزات في هذا النطاق.</div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((b: any) => (
+          {filtered.map((b: any) => {
+            const refItem = b.reference;
+            const refCover = refItem?.media?.[0] ?? (refItem ? { media_url: refItem.media_url, thumbnail_url: refItem.thumbnail_url, media_type: refItem.media_type } : null);
+            return (
             <div key={b.id} className="rounded-2xl border border-gold/10 bg-card p-4 flex flex-wrap items-center gap-4">
               <div className="text-center min-w-[70px] rounded-xl bg-gold/10 py-2 px-3">
                 <div className="text-xs text-muted-foreground">{b.booking_date}</div>
                 <div className="font-black text-gold" dir="ltr">{b.booking_time?.slice(0, 5)}</div>
               </div>
+              {refCover && (
+                <a href={`/barbers/${barber.id}`} target="_blank" rel="noreferrer" title="الشكل المرجعي" className="relative shrink-0 h-14 w-14 rounded-xl overflow-hidden border border-gold/40">
+                  <img src={refCover.thumbnail_url ?? refCover.media_url} className="h-full w-full object-cover" alt="مرجع" />
+                  <div className="absolute inset-x-0 bottom-0 bg-gold text-gold-foreground text-[9px] font-black text-center py-0.5">مرجع</div>
+                </a>
+              )}
               <div className="flex-1 min-w-[200px]">
                 <div className="font-bold">{b.customer_name}</div>
                 <div className="text-xs text-muted-foreground">{b.services?.name ?? "—"} • {b.customer_phone}</div>
@@ -497,7 +599,7 @@ function BookingsTab({ barber }: { barber: BarberFull }) {
               </div>
               <Badge className={`border ${statusColors[b.status] ?? ""}`} variant="outline">{statusAr[b.status] ?? b.status}</Badge>
             </div>
-          ))}
+          );})}
         </div>
       )}
     </div>

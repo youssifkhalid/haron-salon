@@ -16,7 +16,11 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { MediaUploadField } from "@/components/site/MediaUploadField";
 
-const searchSchema = z.object({ service: z.string().optional() });
+const searchSchema = z.object({
+  service: z.string().optional(),
+  barber: z.string().optional(),
+  ref: z.string().optional(),
+});
 
 export const Route = createFileRoute("/booking")({
   validateSearch: searchSchema,
@@ -60,7 +64,7 @@ function BookingPage() {
 
   const [step, setStep] = useState(1);
   const [serviceIds, setServiceIds] = useState<string[]>(search.service ? [search.service] : []);
-  const [barberId, setBarberId] = useState<string>("");
+  const [barberId, setBarberId] = useState<string>(search.barber ?? "");
   const [date, setDate] = useState<string>(todayStr);
   const [time, setTime] = useState<string>("");
   const [name, setName] = useState("");
@@ -73,6 +77,21 @@ function BookingPage() {
   const [methodId, setMethodId] = useState<string>("");
   const [senderPhone, setSenderPhone] = useState("");
   const [proofUrl, setProofUrl] = useState<string>("");
+
+  // Reference portfolio item (from "احجز مثل هذا")
+  const { data: referenceItem } = useQuery({
+    queryKey: ["ref-portfolio-item", search.ref],
+    enabled: !!search.ref,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("barber_portfolio_items")
+        .select("id, caption, media_url, thumbnail_url, media_type, media:barber_portfolio_media(media_url, thumbnail_url, media_type, sort_order)")
+        .eq("id", search.ref!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const selectedServices = useMemo(
     () => services.filter((s: Service) => serviceIds.includes(s.id)),
@@ -101,6 +120,37 @@ function BookingPage() {
     })();
     return () => { alive = false; };
   }, [date, barberId]);
+
+  // Working-hours filter: only when a specific barber is picked.
+  const selectedBarberFull = barbers.find((b: Barber) => b.id === barberId) as any;
+  const dayKeyOfDate = useMemo(() => {
+    if (!date) return null;
+    const d = new Date(date + "T00:00:00");
+    return ["sun","mon","tue","wed","thu","fri","sat"][d.getDay()];
+  }, [date]);
+  const barberDayRange = useMemo(() => {
+    if (!barberId || !selectedBarberFull?.working_hours || !dayKeyOfDate) return null;
+    const raw = (selectedBarberFull.working_hours as Record<string, string>)[dayKeyOfDate];
+    if (!raw) return null;
+    const m = raw.trim().match(/^([01]?\d|2[0-3]):([0-5]\d)\s*-\s*([01]?\d|2[0-3]):([0-5]\d)$/);
+    if (!m) return null;
+    const startMin = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+    const endMin = parseInt(m[3], 10) * 60 + parseInt(m[4], 10);
+    return { startMin, endMin };
+  }, [barberId, selectedBarberFull, dayKeyOfDate]);
+  const barberIsOffToday = !!(barberId && selectedBarberFull?.working_hours && dayKeyOfDate && !(selectedBarberFull.working_hours as Record<string, string>)[dayKeyOfDate]?.trim());
+  const availableTimes = useMemo(() => {
+    if (!barberId || !barberDayRange) return TIMES;
+    const dur = Math.max(1, totalDuration || 30);
+    return TIMES.filter((t) => {
+      const [hh, mm] = t.split(":").map((x) => parseInt(x, 10));
+      const mins = hh * 60 + mm;
+      return mins >= barberDayRange.startMin && (mins + dur) <= barberDayRange.endMin;
+    });
+  }, [barberId, barberDayRange, totalDuration]);
+
+  const dayLabelAr: Record<string, string> = { sat:"السبت", sun:"الأحد", mon:"الاثنين", tue:"الثلاثاء", wed:"الأربعاء", thu:"الخميس", fri:"الجمعة" };
+
 
   const steps = depositActive
     ? ["الخدمة", "الحلاق", "الموعد", "بياناتك", "الدفع"]
@@ -136,6 +186,7 @@ function BookingPage() {
       notes: notes.trim() || null,
       price_egp: totalPrice,
       status,
+      reference_portfolio_item_id: search.ref || null,
     }).select("id").single();
     if (error || !data) { toast.error("تعذّر إنشاء الحجز: " + (error?.message ?? "")); return null; }
 
@@ -333,32 +384,62 @@ function BookingPage() {
               </div>
 
               <h2 className="mt-6 mb-3 text-lg font-bold inline-flex items-center gap-2"><Clock className="h-5 w-5 text-gold" /> اختر الوقت</h2>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
-                {TIMES.map((t) => {
-                  const isTaken = takenTimes.includes(t);
-                  return (
-                    <button
-                      key={t}
-                      disabled={isTaken}
-                      onClick={() => setTime(t)}
-                      className={`rounded-lg border px-2 py-2 text-sm font-bold transition ${
-                        isTaken
-                          ? "cursor-not-allowed border-border/50 text-muted-foreground/40 line-through"
-                          : time === t
-                          ? "border-gold bg-gold-gradient text-gold-foreground shadow-gold"
-                          : "border-border hover:border-gold/40"
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  );
-                })}
-              </div>
+              {barberIsOffToday ? (
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 text-sm text-amber-200">
+                  الحلاق ده مش متاح يوم <b>{dayLabelAr[dayKeyOfDate ?? ""] ?? ""}</b>. اختر يوم تاني أو اختر <button onClick={() => setBarberId("")} className="underline font-bold">أي حلاق متاح</button>.
+                </div>
+              ) : availableTimes.length === 0 ? (
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 text-sm text-amber-200">
+                  لا يوجد أوقات تناسب مدة الخدمات ضمن ساعات عمل الحلاق في هذا اليوم.
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+                  {availableTimes.map((t) => {
+                    const isTaken = takenTimes.includes(t);
+                    return (
+                      <button
+                        key={t}
+                        disabled={isTaken}
+                        onClick={() => setTime(t)}
+                        className={`rounded-lg border px-2 py-2 text-sm font-bold transition ${
+                          isTaken
+                            ? "cursor-not-allowed border-border/50 text-muted-foreground/40 line-through"
+                            : time === t
+                            ? "border-gold bg-gold-gradient text-gold-foreground shadow-gold"
+                            : "border-border hover:border-gold/40"
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
+
           {step === 4 && (
             <div className="animate-fade-up">
+              {referenceItem && (() => {
+                const refMedia = (referenceItem as any).media?.slice().sort((a: any, b: any) => a.sort_order - b.sort_order)[0]
+                  ?? { media_url: (referenceItem as any).media_url, thumbnail_url: (referenceItem as any).thumbnail_url, media_type: (referenceItem as any).media_type };
+                const src = refMedia.thumbnail_url ?? refMedia.media_url;
+                return (
+                  <div className="mb-5 flex items-center gap-3 rounded-2xl border border-gold/30 bg-gold/5 p-3">
+                    <div className="relative shrink-0 h-20 w-20 rounded-xl overflow-hidden bg-black">
+                      {refMedia.media_type === "video" && refMedia.thumbnail_url === null
+                        ? <video src={refMedia.media_url} className="h-full w-full object-cover" muted playsInline />
+                        : <img src={src} className="h-full w-full object-cover" alt="" />}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-black text-gold">أنت طلبت هذا الشكل</div>
+                      {(referenceItem as any).caption && <div className="mt-0.5 text-xs text-foreground/80 line-clamp-2">{(referenceItem as any).caption}</div>}
+                      <div className="mt-1 text-[10px] text-muted-foreground">سيتم إرسال هذا المرجع للحلاق مع حجزك.</div>
+                    </div>
+                  </div>
+                );
+              })()}
               <h2 className="mb-4 text-lg font-bold">بياناتك للتواصل</h2>
               <div className="grid gap-3">
                 <label className="block">

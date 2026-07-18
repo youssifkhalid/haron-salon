@@ -20,6 +20,16 @@ export type BarberFull = {
   working_hours: Record<string, string> | null;
 };
 
+export type PortfolioMedia = {
+  id: string;
+  item_id: string;
+  media_type: "image" | "video";
+  media_url: string;
+  thumbnail_url: string | null;
+  sort_order: number;
+  created_at: string;
+};
+
 export type PortfolioItem = {
   id: string;
   barber_id: string;
@@ -28,7 +38,9 @@ export type PortfolioItem = {
   thumbnail_url: string | null;
   caption: string | null;
   sort_order: number;
+  is_pinned: boolean;
   created_at: string;
+  media: PortfolioMedia[];
 };
 
 export const barberByUserQuery = (userId: string | undefined) => ({
@@ -64,12 +76,26 @@ export const barberPortfolioQuery = (barberId: string | undefined) => ({
   queryFn: async () => {
     const { data, error } = await supabase
       .from("barber_portfolio_items")
-      .select("*")
+      .select("*, media:barber_portfolio_media(*)")
       .eq("barber_id", barberId!)
+      .order("is_pinned", { ascending: false })
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false });
     if (error) throw error;
-    return (data ?? []) as PortfolioItem[];
+    const items = (data ?? []) as any[];
+    for (const it of items) {
+      it.media = (it.media ?? []).slice().sort(
+        (a: PortfolioMedia, b: PortfolioMedia) => a.sort_order - b.sort_order,
+      );
+      if (it.media.length === 0 && it.media_url) {
+        it.media = [{
+          id: it.id, item_id: it.id, media_type: it.media_type,
+          media_url: it.media_url, thumbnail_url: it.thumbnail_url,
+          sort_order: 0, created_at: it.created_at,
+        }];
+      }
+    }
+    return items as PortfolioItem[];
   },
 });
 
@@ -79,7 +105,7 @@ export const barberBookingsQuery = (barberId: string | undefined) => ({
   queryFn: async () => {
     const { data, error } = await supabase
       .from("bookings")
-      .select("*, services(name, duration_minutes)")
+      .select("*, services(name, duration_minutes), reference:barber_portfolio_items!bookings_reference_portfolio_item_id_fkey(id, caption, media_url, thumbnail_url, media_type, media:barber_portfolio_media(media_url, thumbnail_url, media_type, sort_order))")
       .eq("barber_id", barberId!)
       .order("booking_date", { ascending: false })
       .order("booking_time", { ascending: false })
