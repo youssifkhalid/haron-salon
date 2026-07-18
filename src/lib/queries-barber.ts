@@ -105,7 +105,7 @@ export const barberBookingsQuery = (barberId: string | undefined) => ({
   queryFn: async () => {
     const { data, error } = await supabase
       .from("bookings")
-      .select("*, services(name, duration_minutes)")
+      .select("*, services(name, duration_minutes), reference:barber_portfolio_items!bookings_reference_portfolio_item_id_fkey(id, caption, media_url, thumbnail_url, media_type, media:barber_portfolio_media(media_url, thumbnail_url, media_type, sort_order))")
       .eq("barber_id", barberId!)
       .order("booking_date", { ascending: false })
       .order("booking_time", { ascending: false })
