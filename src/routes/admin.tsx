@@ -35,11 +35,13 @@ export const Route = createFileRoute("/admin")({
 type Section =
   | "overview" | "bookings" | "payments" | "policies" | "services" | "barbers" | "gallery" | "reviews"
   | "users" | "crm" | "promotions" | "subscriptions" | "pos" | "expenses" | "reports"
-  | "inbox" | "notifications" | "banners" | "pages" | "qrcodes" | "permissions" | "audit" | "backup" | "settings";
+  | "inbox" | "notifications" | "banners" | "pages" | "qrcodes" | "permissions" | "audit" | "backup" | "settings"
+  | "branches";
 
 const nav: { key: Section; label: string; icon: any; group: string }[] = [
   { key: "overview", label: "نظرة عامة", icon: LayoutDashboard, group: "الرئيسية" },
   { key: "reports", label: "التقارير المالية", icon: BarChart3, group: "الرئيسية" },
+  { key: "branches", label: "الفروع", icon: Building2, group: "الرئيسية" },
   { key: "bookings", label: "الحجوزات", icon: CalendarCheck, group: "العمليات" },
   { key: "payments", label: "الدفع والإيصالات", icon: CreditCard, group: "العمليات" },
   { key: "policies", label: "سياسة الحجز والعربون", icon: Wallet, group: "العمليات" },
