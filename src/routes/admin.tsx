@@ -636,7 +636,7 @@ function BarbersPanel() {
       rating: v.rating ? Number(v.rating) : null,
       sort_order: Number(v.sort_order || 0),
     };
-    for (const k of ["photo_url", "cover_url", "whatsapp", "instagram", "tiktok", "facebook", "bio", "title"]) {
+    for (const k of ["photo_url", "cover_url", "whatsapp", "instagram", "tiktok", "facebook", "bio", "title", "branch_id"]) {
       if (!payload[k]) payload[k] = null;
     }
     const { error } = dialog.editing
