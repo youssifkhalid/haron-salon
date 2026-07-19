@@ -41,6 +41,14 @@ const simpleList = (table: string, order = "created_at", asc = false) => ({
 });
 
 export const promotionsQuery = () => simpleList("promotions");
+export const branchesQuery = () => ({
+  queryKey: ["branches"],
+  queryFn: async () => {
+    const { data, error } = await supabase.from("branches").select("*").order("sort_order", { ascending: true });
+    if (error) throw error;
+    return data ?? [];
+  },
+});
 export const expensesQuery = () => simpleList("expenses", "expense_date");
 export const subscriptionPlansQuery = () => simpleList("subscription_plans", "sort_order", true);
 export const customerSubsQuery = () => ({

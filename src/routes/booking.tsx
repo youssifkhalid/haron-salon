@@ -15,6 +15,8 @@ import {
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { MediaUploadField } from "@/components/site/MediaUploadField";
+import { useServerFn } from "@tanstack/react-start";
+import { notifyBookingCreated } from "@/lib/notifications.functions";
 
 const searchSchema = z.object({
   service: z.string().optional(),
@@ -52,6 +54,7 @@ function BookingPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const qc = useQueryClient();
+  const notify = useServerFn(notifyBookingCreated);
   const { data: services } = useSuspenseQuery(servicesQuery());
   const { data: barbers } = useSuspenseQuery(barbersQuery());
   const { data: policy = {} } = useQuery(bookingPolicyQuery());
@@ -214,6 +217,7 @@ function BookingPage() {
     if (!id) return;
     toast.success("تم حجز موعدك! سنتواصل معك للتأكيد.");
     qc.invalidateQueries({ queryKey: ["bookings"] });
+    notify({ data: { bookingId: id } }).catch(() => {});
     navigate({ to: user ? "/account" : "/" });
   }
 
@@ -240,6 +244,7 @@ function BookingPage() {
     if (error) { toast.error("تعذّر إرسال إثبات الدفع: " + error.message); return; }
     toast.success("تم إرسال طلبك! ستتم مراجعة الدفع وتأكيد حجزك قريبًا.");
     qc.invalidateQueries({ queryKey: ["bookings"] });
+    notify({ data: { bookingId } }).catch(() => {});
     navigate({ to: user ? "/account" : "/" });
   }
 

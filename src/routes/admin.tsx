@@ -5,13 +5,16 @@ import {
   CalendarCheck, Clock, Users, DollarSign, LayoutDashboard, Scissors, UserCog, Image as ImageIcon,
   Star, Settings, Shield, LogOut, Menu, X as XIcon, Check, Search, TrendingUp, Eye, EyeOff,
   Tag, Wallet, CreditCard, MessageSquare, FileText, Megaphone, Bell, ClipboardList, BarChart3, ShieldCheck, Database,
+  Building2, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth, useRoles } from "@/lib/auth";
 import {
   allBookingsQuery, allServicesQuery, allBarbersQuery, allReviewsQuery,
-  allGalleryQuery, siteSettingsQuery, usersAdminQuery,
+  allGalleryQuery, siteSettingsQuery, usersAdminQuery, branchesQuery,
 } from "@/lib/queries";
+import { sendTelegramTest } from "@/lib/notifications.functions";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/site/Logo";
 import { Button } from "@/components/ui/button";
@@ -32,11 +35,13 @@ export const Route = createFileRoute("/admin")({
 type Section =
   | "overview" | "bookings" | "payments" | "policies" | "services" | "barbers" | "gallery" | "reviews"
   | "users" | "crm" | "promotions" | "subscriptions" | "pos" | "expenses" | "reports"
-  | "inbox" | "notifications" | "banners" | "pages" | "qrcodes" | "permissions" | "audit" | "backup" | "settings";
+  | "inbox" | "notifications" | "banners" | "pages" | "qrcodes" | "permissions" | "audit" | "backup" | "settings"
+  | "branches";
 
 const nav: { key: Section; label: string; icon: any; group: string }[] = [
   { key: "overview", label: "نظرة عامة", icon: LayoutDashboard, group: "الرئيسية" },
   { key: "reports", label: "التقارير المالية", icon: BarChart3, group: "الرئيسية" },
+  { key: "branches", label: "الفروع", icon: Building2, group: "الرئيسية" },
   { key: "bookings", label: "الحجوزات", icon: CalendarCheck, group: "العمليات" },
   { key: "payments", label: "الدفع والإيصالات", icon: CreditCard, group: "العمليات" },
   { key: "policies", label: "سياسة الحجز والعربون", icon: Wallet, group: "العمليات" },
@@ -149,6 +154,7 @@ function AdminPage() {
         <main className="p-4 sm:p-6">
           {section === "overview" && <OverviewPanel />}
           {section === "reports" && <ReportsPanel />}
+          {section === "branches" && <BranchesPanel />}
           {section === "bookings" && <BookingsPanel />}
           {section === "payments" && <PaymentMethodsPanel />}
           {section === "policies" && <BookingPoliciesPanel />}
@@ -586,7 +592,7 @@ function ServicesPanel() {
 }
 
 /* =============================== BARBERS =============================== */
-const barberFields: Field[] = [
+const baseBarberFields: Field[] = [
   { name: "name", label: "الاسم", required: true },
   { name: "title", label: "المسمى الوظيفي", placeholder: "حلاق أول" },
   { name: "bio", label: "نبذة", type: "textarea" },
@@ -602,6 +608,13 @@ const barberFields: Field[] = [
 ];
 
 function BarbersPanel() {
+  const { data: branches = [] } = useQuery(branchesQuery());
+  const barberFields: Field[] = useMemo(() => [
+    ...baseBarberFields.slice(0, 1),
+    { name: "branch_id", label: "الفرع", type: "select" as const, required: true,
+      options: branches.map((b: any) => ({ value: b.id, label: b.name })) },
+    ...baseBarberFields.slice(1),
+  ], [branches]);
   const qc = useQueryClient();
   const { data: barbers = [] } = useQuery(allBarbersQuery());
   const { data: users = [] } = useQuery(usersAdminQuery());
@@ -623,7 +636,7 @@ function BarbersPanel() {
       rating: v.rating ? Number(v.rating) : null,
       sort_order: Number(v.sort_order || 0),
     };
-    for (const k of ["photo_url", "cover_url", "whatsapp", "instagram", "tiktok", "facebook", "bio", "title"]) {
+    for (const k of ["photo_url", "cover_url", "whatsapp", "instagram", "tiktok", "facebook", "bio", "title", "branch_id"]) {
       if (!payload[k]) payload[k] = null;
     }
     const { error } = dialog.editing
@@ -1064,6 +1077,125 @@ function SettingsPanel() {
           </section>
         );
       })}
+    </div>
+  );
+}
+
+/* =============================== BRANCHES =============================== */
+const branchFields: Field[] = [
+  { name: "name", label: "اسم الفرع", required: true, placeholder: "مثال: فرع المعادي" },
+  { name: "address", label: "العنوان", type: "textarea" },
+  { name: "phone", label: "الهاتف", type: "tel", placeholder: "01012345678" },
+  { name: "working_hours", label: "ساعات العمل", placeholder: "10:00 صباحاً – 2:00 صباحاً" },
+  { name: "telegram_chat_id", label: "Telegram Chat ID (للإشعارات)", placeholder: "-100123... أو 123456789" },
+  { name: "whatsapp_number", label: "رقم WhatsApp للإشعارات", placeholder: "201012345678" },
+  { name: "sort_order", label: "الترتيب", type: "number" },
+  { name: "is_active", label: "مفعّل", type: "boolean" },
+];
+
+function BranchesPanel() {
+  const qc = useQueryClient();
+  const { data: branches = [] } = useQuery(branchesQuery());
+  const [dialog, setDialog] = useState<{ open: boolean; editing?: any }>({ open: false });
+  const [testing, setTesting] = useState<string | null>(null);
+  const tgTest = useServerFn(sendTelegramTest);
+
+  async function save(v: any) {
+    const payload: any = {
+      ...v,
+      sort_order: Number(v.sort_order || 0),
+    };
+    for (const k of ["address", "phone", "working_hours", "telegram_chat_id", "whatsapp_number"]) {
+      if (!payload[k]) payload[k] = null;
+    }
+    const { error } = dialog.editing
+      ? await supabase.from("branches").update(payload).eq("id", dialog.editing.id)
+      : await supabase.from("branches").insert(payload);
+    if (error) { toast.error(error.message); return; }
+    toast.success(dialog.editing ? "تم التحديث" : "تمت الإضافة");
+    qc.invalidateQueries({ queryKey: ["branches"] });
+  }
+  async function del(id: string) {
+    const { error } = await supabase.from("branches").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("تم الحذف");
+    qc.invalidateQueries({ queryKey: ["branches"] });
+  }
+  async function toggle(b: any) {
+    await supabase.from("branches").update({ is_active: !b.is_active }).eq("id", b.id);
+    qc.invalidateQueries({ queryKey: ["branches"] });
+  }
+  async function testTelegram(b: any) {
+    if (!b.telegram_chat_id) { toast.error("أضف Telegram Chat ID أولاً"); return; }
+    setTesting(b.id);
+    try {
+      const r: any = await tgTest({ data: { chatId: b.telegram_chat_id, text: `✅ اختبار — ${b.name}` } });
+      if (r?.ok) toast.success("تم إرسال رسالة اختبار على تيليجرام"); else toast.error("فشل: " + (r?.error ?? "غير معروف"));
+    } catch (e: any) { toast.error("فشل: " + (e?.message ?? "خطأ")); }
+    finally { setTesting(null); }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-gold/20 bg-gold/5 p-4 text-sm">
+        <div className="font-bold text-gold mb-1">🔔 كيف تحصل على Telegram Chat ID:</div>
+        <ol className="list-decimal pr-5 space-y-0.5 text-xs text-muted-foreground">
+          <li>افتح تيليجرام وابحث عن البوت الخاص بك (اللي عملته من BotFather).</li>
+          <li>ابعت أي رسالة له (مثلاً <code>/start</code>).</li>
+          <li>افتح في المتصفح: <code>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code> — هيظهرلك <code>chat.id</code>.</li>
+          <li>للجروبات: ضيف البوت للجروب وابعت رسالة، بعدها استخدم نفس الرابط.</li>
+          <li>الصق الرقم هنا واضغط اختبار.</li>
+        </ol>
+      </div>
+      <div className="flex items-center justify-between">
+        <Badge variant="outline">{branches.length} فرع</Badge>
+        <AddButton onClick={() => setDialog({ open: true })} label="إضافة فرع" />
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        {branches.map((b: any) => (
+          <div key={b.id} className={`rounded-2xl border p-4 ${b.is_active ? "border-gold/10 bg-card" : "border-border bg-muted/20 opacity-70"}`}>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="font-bold text-lg">{b.name}</h3>
+                {b.address && <div className="text-xs text-muted-foreground mt-0.5">{b.address}</div>}
+                {b.phone && <div className="text-xs text-muted-foreground mt-0.5">📞 {b.phone}</div>}
+                {b.working_hours && <div className="text-xs text-muted-foreground mt-0.5">🕐 {b.working_hours}</div>}
+              </div>
+              <Badge variant={b.is_active ? "default" : "outline"}>{b.is_active ? "نشط" : "معطّل"}</Badge>
+            </div>
+            <div className="mt-3 space-y-1 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Telegram:</span>
+                {b.telegram_chat_id
+                  ? <><code className="text-emerald-500">{b.telegram_chat_id}</code>
+                    <button onClick={() => testTelegram(b)} disabled={testing === b.id}
+                      className="ml-auto inline-flex items-center gap-1 rounded-md border border-gold/40 px-2 py-0.5 text-[11px] font-bold text-gold hover:bg-gold/10 disabled:opacity-50">
+                      <Send className="h-3 w-3" /> {testing === b.id ? "..." : "اختبار"}
+                    </button></>
+                  : <span className="text-muted-foreground">— غير مضبوط</span>}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">WhatsApp:</span>
+                {b.whatsapp_number ? <code>{b.whatsapp_number}</code> : <span className="text-muted-foreground">— غير مضبوط</span>}
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <button onClick={() => setDialog({ open: true, editing: b })} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-bold hover:bg-accent"><IconEdit /> تعديل</button>
+              <button onClick={() => toggle(b)} className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-bold hover:bg-accent">
+                {b.is_active ? <><EyeOff className="h-3.5 w-3.5" /> تعطيل</> : <><Eye className="h-3.5 w-3.5" /> تفعيل</>}
+              </button>
+              <ConfirmButton onConfirm={() => del(b.id)} message="حذف الفرع؟ الصنايعية والحجوزات المنسوبة له لن تُحذف لكن حقل الفرع فيها سيصبح فارغاً."><IconDelete /> حذف</ConfirmButton>
+            </div>
+          </div>
+        ))}
+        {branches.length === 0 && <div className="md:col-span-2 p-10 text-center text-muted-foreground">لا توجد فروع — أضف الفرع الأول.</div>}
+      </div>
+      {dialog.open && (
+        <EntityDialog open={dialog.open} onOpenChange={(v) => setDialog({ open: v })}
+          title={dialog.editing ? "تعديل الفرع" : "إضافة فرع"} fields={branchFields}
+          initial={dialog.editing ?? { is_active: true, sort_order: branches.length }}
+          onSubmit={save} />
+      )}
     </div>
   );
 }
