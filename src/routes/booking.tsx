@@ -217,6 +217,7 @@ function BookingPage() {
     if (!id) return;
     toast.success("تم حجز موعدك! سنتواصل معك للتأكيد.");
     qc.invalidateQueries({ queryKey: ["bookings"] });
+    notify({ data: { bookingId: id } }).catch(() => {});
     navigate({ to: user ? "/account" : "/" });
   }
 
