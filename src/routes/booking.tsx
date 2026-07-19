@@ -15,6 +15,8 @@ import {
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { MediaUploadField } from "@/components/site/MediaUploadField";
+import { useServerFn } from "@tanstack/react-start";
+import { notifyBookingCreated } from "@/lib/notifications.functions";
 
 const searchSchema = z.object({
   service: z.string().optional(),
