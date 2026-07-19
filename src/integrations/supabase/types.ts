@@ -216,6 +216,7 @@ export type Database = {
       barbers: {
         Row: {
           bio: string | null
+          branch_id: string | null
           chair_number: number | null
           cover_url: string | null
           created_at: string
@@ -236,6 +237,7 @@ export type Database = {
         }
         Insert: {
           bio?: string | null
+          branch_id?: string | null
           chair_number?: number | null
           cover_url?: string | null
           created_at?: string
@@ -256,6 +258,7 @@ export type Database = {
         }
         Update: {
           bio?: string | null
+          branch_id?: string | null
           chair_number?: number | null
           cover_url?: string | null
           created_at?: string
@@ -274,7 +277,15 @@ export type Database = {
           whatsapp?: string | null
           working_hours?: Json | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "barbers_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       blackout_dates: {
         Row: {
@@ -344,6 +355,7 @@ export type Database = {
           barber_id: string | null
           booking_date: string
           booking_time: string
+          branch_id: string | null
           created_at: string
           customer_name: string
           customer_phone: string
@@ -361,6 +373,7 @@ export type Database = {
           barber_id?: string | null
           booking_date: string
           booking_time: string
+          branch_id?: string | null
           created_at?: string
           customer_name: string
           customer_phone: string
@@ -378,6 +391,7 @@ export type Database = {
           barber_id?: string | null
           booking_date?: string
           booking_time?: string
+          branch_id?: string | null
           created_at?: string
           customer_name?: string
           customer_phone?: string
@@ -397,6 +411,13 @@ export type Database = {
             columns: ["barber_id"]
             isOneToOne: false
             referencedRelation: "barbers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
             referencedColumns: ["id"]
           },
           {
@@ -421,6 +442,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      branches: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          notification_prefs: Json
+          phone: string | null
+          sort_order: number
+          telegram_chat_id: string | null
+          updated_at: string
+          whatsapp_number: string | null
+          working_hours: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          notification_prefs?: Json
+          phone?: string | null
+          sort_order?: number
+          telegram_chat_id?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
+          working_hours?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          notification_prefs?: Json
+          phone?: string | null
+          sort_order?: number
+          telegram_chat_id?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
+          working_hours?: string | null
+        }
+        Relationships: []
       }
       contact_messages: {
         Row: {
@@ -694,10 +760,14 @@ export type Database = {
       notifications_log: {
         Row: {
           body: string | null
+          branch_id: string | null
           channel: string | null
           created_at: string
+          error: string | null
+          event_type: string | null
           id: number
           meta: Json | null
+          payload: Json | null
           recipient: string | null
           status: string
           subject: string | null
@@ -705,10 +775,14 @@ export type Database = {
         }
         Insert: {
           body?: string | null
+          branch_id?: string | null
           channel?: string | null
           created_at?: string
+          error?: string | null
+          event_type?: string | null
           id?: number
           meta?: Json | null
+          payload?: Json | null
           recipient?: string | null
           status?: string
           subject?: string | null
@@ -716,16 +790,28 @@ export type Database = {
         }
         Update: {
           body?: string | null
+          branch_id?: string | null
           channel?: string | null
           created_at?: string
+          error?: string | null
+          event_type?: string | null
           id?: number
           meta?: Json | null
+          payload?: Json | null
           recipient?: string | null
           status?: string
           subject?: string | null
           template_key?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notifications_log_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_methods: {
         Row: {
