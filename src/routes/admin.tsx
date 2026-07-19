@@ -154,6 +154,7 @@ function AdminPage() {
         <main className="p-4 sm:p-6">
           {section === "overview" && <OverviewPanel />}
           {section === "reports" && <ReportsPanel />}
+          {section === "branches" && <BranchesPanel />}
           {section === "bookings" && <BookingsPanel />}
           {section === "payments" && <PaymentMethodsPanel />}
           {section === "policies" && <BookingPoliciesPanel />}
