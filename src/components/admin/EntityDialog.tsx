@@ -67,6 +67,16 @@ export function EntityDialog<T extends Record<string, any>>({
                   onChange={(url) => setValues({ ...values, [f.name]: url })}
                   required={f.required}
                 />
+              ) : f.type === "select" ? (
+                <select
+                  value={values[f.name] ?? ""}
+                  onChange={(e) => setValues({ ...values, [f.name]: e.target.value || null })}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  required={f.required}
+                >
+                  <option value="">— اختر —</option>
+                  {(f.options ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
               ) : (
                 <Input
                   type={f.type === "number" ? "number" : f.type === "url" ? "url" : f.type === "email" ? "email" : f.type === "tel" ? "tel" : "text"}
