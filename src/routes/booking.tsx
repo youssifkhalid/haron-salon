@@ -244,6 +244,7 @@ function BookingPage() {
     if (error) { toast.error("تعذّر إرسال إثبات الدفع: " + error.message); return; }
     toast.success("تم إرسال طلبك! ستتم مراجعة الدفع وتأكيد حجزك قريبًا.");
     qc.invalidateQueries({ queryKey: ["bookings"] });
+    notify({ data: { bookingId } }).catch(() => {});
     navigate({ to: user ? "/account" : "/" });
   }
 
