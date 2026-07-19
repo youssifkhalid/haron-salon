@@ -54,6 +54,7 @@ function BookingPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const qc = useQueryClient();
+  const notify = useServerFn(notifyBookingCreated);
   const { data: services } = useSuspenseQuery(servicesQuery());
   const { data: barbers } = useSuspenseQuery(barbersQuery());
   const { data: policy = {} } = useQuery(bookingPolicyQuery());
