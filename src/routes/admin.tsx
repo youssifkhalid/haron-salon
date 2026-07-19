@@ -592,7 +592,7 @@ function ServicesPanel() {
 }
 
 /* =============================== BARBERS =============================== */
-const barberFields: Field[] = [
+const baseBarberFields: Field[] = [
   { name: "name", label: "الاسم", required: true },
   { name: "title", label: "المسمى الوظيفي", placeholder: "حلاق أول" },
   { name: "bio", label: "نبذة", type: "textarea" },
@@ -608,6 +608,13 @@ const barberFields: Field[] = [
 ];
 
 function BarbersPanel() {
+  const { data: branches = [] } = useQuery(branchesQuery());
+  const barberFields: Field[] = useMemo(() => [
+    ...baseBarberFields.slice(0, 1),
+    { name: "branch_id", label: "الفرع", type: "select" as const, required: true,
+      options: branches.map((b: any) => ({ value: b.id, label: b.name })) },
+    ...baseBarberFields.slice(1),
+  ], [branches]);
   const qc = useQueryClient();
   const { data: barbers = [] } = useQuery(allBarbersQuery());
   const { data: users = [] } = useQuery(usersAdminQuery());
