@@ -9,7 +9,7 @@ import { Trash2, Pencil, Plus, Upload, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-type FieldType = "text" | "number" | "textarea" | "url" | "boolean" | "email" | "tel" | "image";
+type FieldType = "text" | "number" | "textarea" | "url" | "boolean" | "email" | "tel" | "image" | "select";
 
 export type Field = {
   name: string;
@@ -17,6 +17,7 @@ export type Field = {
   type?: FieldType;
   placeholder?: string;
   required?: boolean;
+  options?: { value: string; label: string }[];
 };
 
 export function EntityDialog<T extends Record<string, any>>({
